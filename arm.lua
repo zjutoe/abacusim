@@ -1,5 +1,23 @@
 require 'luabit/bit'
 
+-- get v[n:m]
+local function bits(v, n, m)
+   if n<m or n>31 or m<0 then
+      return nil
+   end
+   --return bit.blogic_rshift(bit.blshift(v, 31-n), 31-n+m)
+   return bit.brshift(bit.blshift(v, 31-n), 31-n+m)
+end
+
+local function rotate_left(v, n)
+   return bit.bor(bit.blshift(v, n), bit.brshift(v, 32-n))
+end
+
+local function rotate_right(v, n)
+   return bit.bor(bit.brshift(v, n), bit.blshift(v, 32-n))
+end
+
+
 function init_regs()
    local R = {}
    for i=0,14 do
@@ -114,6 +132,112 @@ function cond(inst, cpsr)
    end
    
 end
+
+
+function opcode(inst, cpsr)
+   
+   --local op = bit.brshift(bit.blshift(inst, 7), 21) -- inst[24:21] is opcode
+   local op = bits(inst, 24, 21)
+   local I = bits(inst, 25, 25)
+   local cflag = bits(cpsr, 29, 29)
+
+   local shifter_operand
+   local shifter_carry_out
+
+   if I==1 then
+      -- A5.1.3 Data-processing operands - Immediate
+      local rotate_imm = bits(inst, 11, 8)
+      local immed_8 = bits(inst, 7, 0)
+      shifter_operand = rotate_right(immed_8, rotate_imm * 2)
+      if rotate_imm == 0 then
+	 shifter_carry_out = cflag
+      else
+	 shifter_carry_out = bits(shifter_operand, 31, 31)
+      end
+   else
+      if bits(inst, 11, 4) == 0 then
+	 -- A5.1.4 Data-processing operands - Register	 FIXME seems this is included in A5.1.5?
+	 local Rm = bits(inst, 3, 0)
+	 shifter_operand = R[Rm]
+	 shifter_carry_out = cflag
+      elseif bits(inst, 6, 4) == 0 then
+	 -- A5.1.5 Data-processing operands - Logical shift left by immediate
+	 local shift_imm = bits(inst, 11, 7)
+	 local Rm = bits(inst, 3, 0)
+	 shifter_operand = rotate_left(R[Rm], shift_imm) -- FIXME should be Logical_Shift_Left
+	 if shift_imm == 0 then
+	    shifter_carry_out = cflag
+	 else
+	    shifter_carry_out = bits(R[Rm], 32-shift_imm, 32-shift_imm)
+	 end
+      elseif bits(inst, 7, 4) == 1 then
+	 -- A5.1.6 Data-processing operands - Logical shift left by register
+	 
+      end
+      
+      if bits(inst, 4, 4) == 0 then
+	 local shift_imm = bits(inst, 11, 7)
+	 local shift = bits(inst, 6, 5)
+	 local Rm = bits(inst, 3, 0)
+	 shifter = 
+      elseif bits(inst, 7, 7) == 0 then
+	 local Rs = bits(inst, 11, 8)
+	 local shift = bits(inst, 6, 5)
+	 local Rm = bits(inst, 3, 0)
+      else
+	 -- inst[25]==0, inst[4]==1, inst[7]==1, this is not a data
+	 -- processing inst
+	 
+      end
+   end
+
+   if op == 0 then
+      -- AND, Logical AND
+      
+   elseif op == 1 then
+      -- EOR, Logical Exclusive OR
+   elseif op == 2 then
+      -- SUB, Subtract
+   elseif op == 3 then
+      -- RSB, Reverse Subtract
+   elseif op == 4 then
+      -- ADD, Add
+   elseif op == 5 then
+      -- ADC, Add with Carry
+   elseif op == 6 then
+      -- SBC, Subtract with Carry
+   elseif op == 7 then
+      -- RSC, Reverse Subtract with Carry
+   elseif op == 8 then
+      -- TST, Test
+   elseif op == 9 then
+      -- TEQ, Test Equivalence
+   elseif op == 10 then
+      -- CMP, Compare
+   elseif op == 11 then
+      -- CMN, Compare Negated
+   elseif op == 12 then
+      -- ORR, Logical (inclusive) OR
+   elseif op == 13 then
+      -- MOV, Move
+   elseif op == 14 then
+      -- BIC, Bit Clear
+   elseif op == 15 then
+      -- MVN, Move Not
+   end
+   
+end
+
+
 function decode(inst)
+
+   local c = cond(inst)
+   
+   if c == true then
+      local op = opcode(inst)
+      
+   else
+      
+   end
    
 end
