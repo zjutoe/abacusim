@@ -152,6 +152,9 @@ function get_shifter_operand(inst, cpsr)
       local Rm = subv(inst, 3, 0)
       local vRm = R[Rm]		-- TODO for PC (R15) it should add 8
       local b_Rm = bit.tobits(vRm)
+      local op114 = subv(inst, 11, 4)
+      local op64 = subv(inst, 6, 4)
+      local op74 = sub(inst, 7, 4)
 
       if subv(inst, 11, 4) == 0 then
 	 -- A5.1.4 Data-processing operands - Register
