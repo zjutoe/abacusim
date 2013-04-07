@@ -1,5 +1,6 @@
 local function tobits(v)
    -- TODO assert(v>=0)
+
    -- v <= 2^32-1
    if v > 4294967295 then
       return nil
@@ -91,7 +92,7 @@ local function sub(t, m, n)
    return t2
 end
 
-local function append(t1, t2)
+local function concate(t1, t2)
    if t1.size + t2.size > 32 then return nil end
 
    local t3 = {}
@@ -109,7 +110,7 @@ local function append(t1, t2)
    return t3
 end
 
-local function fill_logic(t)
+local function extend_logic(t)
    local t2 = {}
    
    for i=0, t.size-1 do
@@ -124,16 +125,31 @@ local function fill_logic(t)
    return t2   
 end
 
+local function tonum(t)
+   local v = 0
+   for i=t.size-1, 0 do
+      v = v + v + t[i]
+   end
+   return v
+end
+
+local function bits(v, i, j)
+   local t = sub(tobits(v), i, j)
+   return tonum(t)
+end
+
+
+
 local function rotate_left(t, n)
    local t1 = sub(t, 31-n, 0)
    local t2 = sub(t, 31, 32-n)
-   return append(t1, t2)
+   return concate(t1, t2)
 end
 
 local function rotate_right(t, n)
    local t1 = sub(t, n-1, 0)
    local t2 = sub(t, 31, n)
-   return append(t1, t2)
+   return concate(t1, t2)
 end
 
 local function shift_logic_left(t, n)
@@ -143,7 +159,7 @@ local function shift_logic_left(t, n)
       t2[i] = 0
    end
    t2.size = n
-   return append(t1, t2)
+   return concate(t1, t2)
 end
 
 local function shift_logic_right(t, n)
@@ -153,7 +169,7 @@ local function shift_logic_right(t, n)
       t2[i] = 0
    end
    t2.size = n
-   return append(t2, t1)
+   return concate(t2, t1)
 end
 
 
@@ -237,12 +253,18 @@ end
 bit = {
 tobits = tobits,
 tonum = tonum,
-bits = bits_v,
-rleft = rotate_left_v,
-rright = rotate_right_v,
-sll = logical_left_shift_v,
-slr = logical_right_shift_v,
+bits = bits,
+rol = rotate_left,
+ror = rotate_right,
+sll = shift_logic_left,
+slr = shift_logic_right,
 sub = sub,
-append = append,
-fill_logic = fill_logic,
+concate = concate,
+extend_logic = extend_logic,
+
+-- bits = bits_v,
+-- rleft = rotate_left_v,
+-- rright = rotate_right_v,
+-- sll = logical_left_shift_v,
+-- slr = logical_right_shift_v,
 }
