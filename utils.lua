@@ -72,10 +72,6 @@ local function sub_tonum(t, i, j)
    return n
 end
 
-local function bits_v(v, i, j)
-   return sub_tonum(tobits(v), i, j)
-end
-
 
 local function sub(t, m, n)
    if m<n or m>31 or n<0 then return nil end
@@ -152,7 +148,7 @@ local function rotate_right(t, n)
    return concate(t1, t2)
 end
 
-local function shift_logic_left(t, n)
+local function shift_left_logic(t, n)
    local t1 = sub(t, 31-n, 0)
    local t2 = {}
    for i=0, n-1 do
@@ -162,7 +158,7 @@ local function shift_logic_left(t, n)
    return concate(t1, t2)
 end
 
-local function shift_logic_right(t, n)
+local function shift_right_logic(t, n)
    local t1 = sub(t, 31, n)
    local t2 = {}
    for i=0, n-1 do
@@ -171,6 +167,65 @@ local function shift_logic_right(t, n)
    t2.size = n
    return concate(t2, t1)
 end
+
+local function band(t1, t2)
+   if t1.size<0 or t2.size<0 then return nil end
+
+   if t1.size < t2.size then
+      t1, t2 = t2, t1
+   end
+
+   local t3 = {}
+   for i=0, t2.size-1 do
+      t3[i] = (t1[i]==1 and t2[i]==1) and 1 or 0
+   end
+   t3.size = t2.size
+
+   return t3
+end
+
+
+local function bor(t1, t2)
+   if t1.size<0 or t2.size<0 then return nil end
+
+   if t1.size < t2.size then
+      t1, t2 = t2, t1
+   end
+
+   local t3 = {}
+   for i=0, t2.size-1 do
+      t3[i] = (t1[i]==0 and t2[i]==0) and 0 or 1
+   end
+   for i=t2.size, t1.size-1 do
+      t3[i] = t1[i]
+   end
+   t3.size = t1.size
+
+   return t3
+end
+
+
+local function bxor(t1, t2)
+   if t1.size<0 or t2.size<0 then return nil end
+
+   if t1.size < t2.size then
+      t1, t2 = t2, t1
+   end
+
+   local t3 = {}
+   for i=0, t2.size-1 do
+      t3[i] = (t1[i]==t2[i]) and 0 or 1
+   end
+   for i=t2.size, t1.size-1 do
+      t3[i] = (t1[i]==0) and 0 or 1
+   end
+   t3.size = t1.size
+
+   return t3
+end
+
+
+
 
 local function shift_right_arithmetic(t, n)
    local s = t[31]
@@ -183,6 +238,9 @@ local function shift_right_arithmetic(t, n)
    return concate(t2, t1)
 end
 
+local function bits_v(v, i, j)
+   return sub_tonum(tobits(v), i, j)
+end
 
 local function rotate_left_v(v, n)
    if n>32 or n<0 then return nil end
@@ -264,11 +322,14 @@ end
 bit = {
    tobits = tobits,
    tonum = tonum,
+   band = band,
+   bor = bor,
+   bxor = bxor,
    bits = bits,
    rol = rotate_left,
    ror = rotate_right,
-   sll = shift_logic_left,
-   srl = shift_logic_right,
+   sll = shift_left_logic,
+   srl = shift_right_logic,
    sra = shift_right_arithmetic,
    sub = sub,
    concate = concate,
