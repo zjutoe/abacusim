@@ -148,6 +148,7 @@ function get_shifter_operand(inst, cpsr)
       else
 	 shifter_carry_out = b_shifter_operand[31]
       end
+
    else
       local Rm = subv(inst, 3, 0)
       local vRm = R[Rm]		-- TODO for PC (R15) it should add 8
@@ -161,6 +162,7 @@ function get_shifter_operand(inst, cpsr)
 	 -- FIXME seems this is included in A5.1.5?
 	 shifter_operand = vRm
 	 shifter_carry_out = cflag
+
       elseif subv(inst, 6, 4) == 0 then
 	 -- A5.1.5 Data-processing operands - Logical shift left by immediate
 	 local shift_imm = subv(inst, 11, 7)
@@ -170,6 +172,7 @@ function get_shifter_operand(inst, cpsr)
 	 else
 	    shifter_carry_out = b_Rm[32-shift_imm]
 	 end
+
       elseif subv(inst, 7, 4) == 1 then
 	 -- A5.1.6 Data-processing operands - Logical shift left by register
 	 local Rs = subv(inst, 11, 8)
@@ -189,6 +192,7 @@ function get_shifter_operand(inst, cpsr)
 	    shifter_operand = 0
 	    shifter_carry_out = 0
 	 end
+
       elseif subv(inst, 6, 4) == 2 then
 	 -- A5.1.7 Data-processing operands - Logical shift right by immediate
 	 local shift_imm = subv(inst, 11, 7)
@@ -197,9 +201,10 @@ function get_shifter_operand(inst, cpsr)
 	    shifter_operand = 0
 	    shifter_carry_out = b_Rm[31]
 	 else
-	    shifter_operand = bit.tonum(bit.slr(b_Rm, shift_imm))
+	    shifter_operand = bit.tonum(bit.srl(b_Rm, shift_imm))
 	    shifter_carry_out = b_Rm[shift_imm-1]
 	 end	 
+
       elseif subv(inst, 7, 4) == 3 then
 	 -- A5.1.8 Data-processing operands - Logical shift right by register
 	 local Rs = subv(inst, 11, 8)
@@ -209,7 +214,7 @@ function get_shifter_operand(inst, cpsr)
 	    shifter_operand = vRm
 	    shifter_carry_out = cflag
 	 elseif shift < 32 then
-	    shifter_operand = bit.tonum(bit.slr(b_Rm, shift))
+	    shifter_operand = bit.tonum(bit.srl(b_Rm, shift))
 	    shifter_carry_out = b_Rm[shift-1]
 	 elseif shift == 32 then
 	    shifter_operand = 0
@@ -217,14 +222,81 @@ function get_shifter_operand(inst, cpsr)
 	 else 
 	    shifter_operand = 0
 	    shifter_carry_out = 0
-	 end	 
+	 end
+	 
       elseif subv(inst, 6, 4) == 4 then
 	 -- A5.1.9 Data-processing operands - Arithmetic shift right by immediate
+	 local shift_imm = subv(inst, 11, 7)
+	 if shift_imm == 0 then
+	    if b_Rm[31] == 0 then
+	       shifter_operand = 0
+	       shifter_carry_out = b_Rm[31]
+	    else
+	       shifter_operand = 0xFFFFFFFF
+	       shifter_carry_out = b_Rm[31]
+	    end
+	 else			-- shift_imm > 0
+	    shifter_operand = bit.tonum(bit.sra(b_Rm, shift_imm))
+	    shifter_carry_out = b_Rm[shift_imm - 1]
+	 end
 	 
-      elseif 
+      elseif subv(inst, 7, 4) == 5 then
+	 -- A5.1.10 Data-processing operands - Arithmetic shift right by register
+	 local Rs = subv(inst, 11, 8)
+	 local shift = R[Rs] % 256 -- vRs[7:0]
+	 
+	 if shift == 0 then
+	    shifter_operand = vRm
+	    shifter_carry_out = cflag
+	 elseif shift < 32 then
+	    shifter_operand = bit.tonum(bit.sra(b_Rm, shift))
+	    shifter_carry_out = b_Rm[shift-1]
+	 else 			-- shift >= 32
+	    if b_Rm[31] == 0 then
+	       shifter_operand = 0
+	       shifter_carry_out = b_Rm[31]
+	    else		-- b_Rm[31] == 1
+	       shifter_operand = 0xFFFFFFFF
+	       shifter_carry_out = b_Rm[31]
+	    end
+	 end
 
+      elseif subv(inst, 6, 4) == 6 then
+	 -- A5.1.11 Data-processing operands - Rotate right by immediate
+	 local shift_imm = subv(inst, 11, 7)
+	 if shift_imm == 0 then
+	    -- See “Data-processing operands - Rotate right with
+	    -- extend” on page A5-17
+	 else
+	    shifter_operand = bit.tonum(bit.ror(b_Rm, shift_imm))
+	    shifter_carry_out = b_Rm[shift_imm-1]
+	 end
+
+      elseif subv(inst, 7, 4) == 7 then
+	 -- A5.1.12 Data-processing operands - Rotate right by register
+	 local Rs = subv(inst, 11, 8)
+	 local shift = R[Rs] % 256 -- vRs[7:0]
+	 local shift2 = R[Rs] % 16
+	 if shift == 0 then
+	    shifter_operand = vRm
+	    shifter_carry_out = cflag
+	 elseif shift2  == 0 then
+	    shifter_operand = vRm
+	    shifter_carry_out = b_Rm[31]	    
+	 else
+	    shifter_operand = bit.tonum( bit.ror(b_Rm, shift2) )
+	    shifter_carry_out = b_Rm[shift2 - 1]	    
+	 end
+
+      elseif subv(inst, 11, 4) == 6 then
+	 -- A5.1.13 Data-processing operands - Rotate right with extend
+	 -- (C Flag Logical_Shift_Left 31) OR (Rm Logical_Shift_Right 1)
+	 shifter_operand = bit.tonum(bit.concate(bit.sub(bit.tobits(cflag), 0, 0), 
+						 bit.sub(b_Rm, 31, 1)))
+	 shifter_carry_out = b_Rm[0]
       end
    
+      return shifter_operand, shifter_carry_out
 end
 
 function opcode(inst, cpsr)
@@ -291,7 +363,7 @@ function opcode(inst, cpsr)
 	    shifter_operand = 0
 	    shifter_carry_out = bits(R[Rm], 31, 31)
 	 else
-	    shifter_operand = bits.slr(R[Rm], shift_imm)
+	    shifter_operand = bits.srl(R[Rm], shift_imm)
 	    shifter_carry_out = bits(R[Rm], shift_imm-1, shift_imm-1)
 	 end
 	    

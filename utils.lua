@@ -172,6 +172,17 @@ local function shift_logic_right(t, n)
    return concate(t2, t1)
 end
 
+local function shift_right_arithmetic(t, n)
+   local s = t[31]
+   local t1 = sub(t, 31, n)
+   local t2 = {}
+   for i=0, n-1 do
+      t2[i] = s
+   end
+   t2.size = n
+   return concate(t2, t1)
+end
+
 
 local function rotate_left_v(v, n)
    if n>32 or n<0 then return nil end
@@ -251,16 +262,17 @@ end
 
 
 bit = {
-tobits = tobits,
-tonum = tonum,
-bits = bits,
-rol = rotate_left,
-ror = rotate_right,
-sll = shift_logic_left,
-slr = shift_logic_right,
-sub = sub,
-concate = concate,
-extend_logic = extend_logic,
+   tobits = tobits,
+   tonum = tonum,
+   bits = bits,
+   rol = rotate_left,
+   ror = rotate_right,
+   sll = shift_logic_left,
+   srl = shift_logic_right,
+   sra = shift_right_arithmetic,
+   sub = sub,
+   concate = concate,
+   extend_logic = extend_logic,
 
 -- bits = bits_v,
 -- rleft = rotate_left_v,
