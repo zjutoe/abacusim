@@ -1,3 +1,6 @@
+-- I'm trying to comply with the ARM V5 Architecture Spec, which is 
+
+
 --require 'luabit/bit'
 require 'utils'
 
@@ -310,23 +313,58 @@ function data_processing_inst(inst, cpsr)
    -- A5.1 Addressing Mode 1 - Data-processing operands
    local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
 
+   -- A3.4 Data-processing instructions
+   -- TODO update flags
    if op == 0 then
       -- AND, Logical AND
-      
+      local vRd = bit.band(bit.tobits(vRn), bit.tobits(shifter_operand))
+      R[Rd] = vRd
+
    elseif op == 1 then
       -- EOR, Logical Exclusive OR
+      local vRd = bit.bxor(bit.tobits(vRn), bit.tobits(shifter_operand))
+      R[Rd] = vRd
+      
    elseif op == 2 then
       -- SUB, Subtract
+      local vRd = vRn - shifter_operand
+      R[Rd] = vRd
+
    elseif op == 3 then
       -- RSB, Reverse Subtract
+      local vRd = shifter_operand - vRn
+      R[Rd] = vRd
+
    elseif op == 4 then
       -- ADD, Add
+      local vRd = vRn + shifter_operand
+      R[Rd] = vRd
+
    elseif op == 5 then
       -- ADC, Add with Carry
+      local vRd = vRn + shifter_operand + cpsr[29]
+      R[Rd] = vRd
+
+      if S == 1 and Rd == 15 then
+	 -- if CurrentModeHasSPSR() then
+	 --    CPSR = SPSR
+	 -- else
+	 --    UNPREDICTABLE
+	 -- end
+      elseif S == 1 then
+	 
+      end
+
    elseif op == 6 then
       -- SBC, Subtract with Carry
+      local vRd = vRn - shifter_operand - ((cpsr[29]==0) and 1 or 0)
+      R[Rd] = vRd
+
    elseif op == 7 then
       -- RSC, Reverse Subtract with Carry
+      local vRd = shifter_operand - vRn - ((cpsr[29]==0) and 1 or 0)
+      R[Rd] = vRd
+
    elseif op == 8 then
       -- TST, Test
    elseif op == 9 then
