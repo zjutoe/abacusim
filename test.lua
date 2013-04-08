@@ -82,7 +82,11 @@ t = bit.tobits(0xaa00aa)
 
 function dump_bits(t) 
    for i=31, 0, -1 do
-      io.write(t[i])
+      if t[i] then 
+	 io.write(t[i])
+      else
+	 io.write(0)
+      end
    end
    print('')
 end
@@ -92,8 +96,14 @@ end
 
 t1 = bit.sub(bit.tobits(3), 3, 0)
 t2 = bit.sub(bit.tobits(0xa), 3, 0)
-t3 = bit.append(t1, t2)
-t4 = bit.fill_logic(t3)
-print (t1.size, t2.size, t3.size, t4.size)
-dump_bits(t4)
+dump_bits(t1)
+dump_bits(t2)
+dump_bits(bit.bor(t1, t2))
+dump_bits(bit.band(t1, t2))
+dump_bits(bit.bxor(t1, t2))
+
+-- t3 = bit.append(t1, t2)
+-- t4 = bit.extend_logic(t3)
+-- print (t1.size, t2.size, t3.size, t4.size)
+-- dump_bits(t4)
 
