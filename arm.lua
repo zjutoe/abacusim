@@ -299,92 +299,16 @@ function get_shifter_operand(inst, cpsr)
       return shifter_operand, shifter_carry_out
 end
 
-function opcode(inst, cpsr)
-   
-   --local op = bit.brshift(bit.blshift(inst, 7), 21) -- inst[24:21] is opcode
-   local op = bits(inst, 24, 21)
-   local I = bits(inst, 25, 25)
-   local cflag = bits(cpsr, 29, 29)
 
-   local shifter_operand
-   local shifter_carry_out
+-- inst: table of bits of instruction
+-- cpsr: table of bits of CPSR
+function data_processing_inst(inst, cpsr)
 
-   if I==1 then
-      -- A5.1.3 Data-processing operands - Immediate
-      local rotate_imm = bits(inst, 11, 8)
-      local immed_8 = bits(inst, 7, 0)
-      shifter_operand = rotate_right(immed_8, rotate_imm * 2)
-      if rotate_imm == 0 then
-	 shifter_carry_out = cflag
-      else
-	 shifter_carry_out = bits(shifter_operand, 31, 31)
-      end
-   else
-      if bits(inst, 11, 4) == 0 then
-	 -- A5.1.4 Data-processing operands - Register	 FIXME seems this is included in A5.1.5?
-	 local Rm = bits(inst, 3, 0)
-	 shifter_operand = R[Rm]
-	 shifter_carry_out = cflag
-      elseif bits(inst, 6, 4) == 0 then
-	 -- A5.1.5 Data-processing operands - Logical shift left by immediate
-	 local shift_imm = bits(inst, 11, 7)
-	 local Rm = bits(inst, 3, 0)
-	 shifter_operand = bits.sll(R[Rm], shift_imm) -- FIXME should be Logical_Shift_Left
-	 if shift_imm == 0 then
-	    shifter_carry_out = cflag
-	 else
-	    shifter_carry_out = bits(R[Rm], 32-shift_imm, 32-shift_imm)
-	 end
-      elseif bits(inst, 7, 4) == 1 then
-	 -- A5.1.6 Data-processing operands - Logical shift left by register
-	 local Rs = bits(inst, 11, 8)
-	 local Rm = bits(inst, 3, 0)
-	 local shift = bits(R[Rs], 7, 0)
-	 
-	 if shift == 0 then
-	    shifter_operand = R[Rm]
-	    shifter_carry_out = cflag
-	 elseif shift < 32 then
-	    shifter_operand = bits.sll(R[Rm], shift)
-	    shifter_carry_out = bits(R[Rm], 32-shift, 32-shift)
-	 elseif shift == 32 then
-	    shifter_operand = 0
-	    shifter_carry_out = bits(R[Rm], 0, 0)
-	 else
-	    shifter_operand = 0
-	    shifter_carry_out = 0
-	 end	 
-      elseif bits(inst, 6, 4) == 2 then
-	 -- A5.1.7 Data-processing operands - Logical shift right by immediate
-	 local shift_imm = bits(inst, 11, 7)
-	 local Rm = bits(inst, 3, 0)
-
-	 if shift_imm == 0 then
-	    shifter_operand = 0
-	    shifter_carry_out = bits(R[Rm], 31, 31)
-	 else
-	    shifter_operand = bits.srl(R[Rm], shift_imm)
-	    shifter_carry_out = bits(R[Rm], shift_imm-1, shift_imm-1)
-	 end
-	    
-
-      end
-
-      if bits(inst, 4, 4) == 0 then
-	 local shift_imm = bits(inst, 11, 7)
-	 local shift = bits(inst, 6, 5)
-	 local Rm = bits(inst, 3, 0)
-	 shifter = 
-      elseif bits(inst, 7, 7) == 0 then
-	 local Rs = bits(inst, 11, 8)
-	 local shift = bits(inst, 6, 5)
-	 local Rm = bits(inst, 3, 0)
-      else
-	 -- inst[25]==0, inst[4]==1, inst[7]==1, this is not a data
-	 -- processing inst
-	 
-      end
-   end
+   -- A3.4.1 Instruction encoding
+   local op, S, Rn, Rd = subv(inst, 24, 21), inst[20], subv(inst, 19, 16), subv(inst, 15, 12)
+   local vRn, vRd = R[Rn], R[Rd]
+   -- A5.1 Addressing Mode 1 - Data-processing operands
+   local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
 
    if op == 0 then
       -- AND, Logical AND
