@@ -224,6 +224,22 @@ local function bxor(t1, t2)
    return t3
 end
 
+local function bnot(t)
+   if t.size<0 then return nil end
+
+   local t2 = {}
+   for i=0, t.size-1 do
+      t2[i] = (t[i]==1) and 0 or 1
+   end
+   for i=t.size, 31 do
+      t2[i] = 1
+   end
+
+   t2.size = t.size
+
+   return t2
+end
+
 
 
 
@@ -325,6 +341,7 @@ bit = {
    band = band,
    bor = bor,
    bxor = bxor,
+   bnot = bnot,
    bits = bits,
    rol = rotate_left,
    ror = rotate_right,

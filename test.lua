@@ -96,11 +96,21 @@ end
 
 t1 = bit.sub(bit.tobits(3), 3, 0)
 t2 = bit.sub(bit.tobits(0xa), 3, 0)
+t3 = bit.tobits(4294967296 - 3)
+t4 = bit.tobits(4294967296 - 0xa)
 dump_bits(t1)
+dump_bits(bit.bnot(t1))
+
 dump_bits(t2)
-dump_bits(bit.bor(t1, t2))
-dump_bits(bit.band(t1, t2))
-dump_bits(bit.bxor(t1, t2))
+dump_bits(bit.bnot(t2))
+
+dump_bits(t3)
+dump_bits(t4)
+
+-- dump_bits(bit.bor(t1, t2))
+-- dump_bits(bit.band(t1, t2))
+-- dump_bits(bit.bxor(t1, t2))
+
 
 -- t3 = bit.append(t1, t2)
 -- t4 = bit.extend_logic(t3)

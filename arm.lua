@@ -302,6 +302,44 @@ function get_shifter_operand(inst, cpsr)
       return shifter_operand, shifter_carry_out
 end
 
+function set_flags(N, Z, C, V)
+   local b_cpsr = bit.tobits(R['CPSR'])
+   b_cpsr[31], b_cpsr[30], b_cpsr[29], b_cpsr[28] = N, Z, C, V
+   R['CPSR'] = bit.tonum(b_cpsr)
+end
+
+function sign_bit_of(n)
+   if n<0 then n = 1 - n end
+   return bit.tobits(n)[31]
+end
+
+-- 2's complement
+-- assume 32 bits data width, 2^32 - n + 1
+function twos_comp(n)
+   return (n<0) and (4294967297-n) or n
+end
+
+function cflag_by_add(n1, n2)
+   if n1>0 and n2>0 then
+      return n1+n2 > 4294967296 
+   elseif n1<0 and n2<0 then
+      n1, n2 = twos_comp(n1), twos_comp(n2)   
+      return n1+n2 > 4294967296
+   end
+
+   return false     
+end
+
+function cflag_by_sub(n1, n2)
+   
+end
+
+function vflag_by_add(n1, n2, s)
+   local s1 = sign_bit_of(n1)
+   local s2 = sign_bit_of(n2) 
+   local s3 = sign_bit_of(s)
+   return s1==s2 and s1~=s3
+end
 
 -- inst: table of bits of instruction
 -- cpsr: table of bits of CPSR
@@ -343,6 +381,11 @@ function data_processing_inst(inst, cpsr)
    elseif op == 5 then
       -- ADC, Add with Carry
       local vRd = vRn + shifter_operand + cpsr[29]
+      local C, V = 0, 0
+      if vRd>4294967295 then
+	 C = 1
+	 vRd = vRd - 4294967296
+      end
       R[Rd] = vRd
 
       if S == 1 and Rd == 15 then
@@ -352,7 +395,11 @@ function data_processing_inst(inst, cpsr)
 	 --    UNPREDICTABLE
 	 -- end
       elseif S == 1 then
-	 
+	 local b_Rd = bit.tobits(vRd)
+	 local N = b_Rd[31]
+	 local Z = (vRd==0) and 1 or 0
+	 local C
+	 local V
       end
 
    elseif op == 6 then
