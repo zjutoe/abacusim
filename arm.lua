@@ -363,33 +363,34 @@ function data_processing_inst(inst, cpsr)
    if op == 0 then
       -- AND, Logical AND
       local vRd = bit.band(bit.tobits(vRn), bit.tobits(shifter_operand))
-      R[Rd] = vRd
+      R.set(Rd, vRd)		-- R[Rd] = vRd
+
 
    elseif op == 1 then
       -- EOR, Logical Exclusive OR
       local vRd = bit.bxor(bit.tobits(vRn), bit.tobits(shifter_operand))
-      R[Rd] = vRd
+      R.set(Rd, vRd)		-- R[Rd] = vRd
       
    elseif op == 2 then
       -- SUB, Subtract
       local vRd = vRn - shifter_operand
-      R[Rd] = vRd
+      R.set(Rd, vRd)		-- R[Rd] = vRd
 
    elseif op == 3 then
       -- RSB, Reverse Subtract
       local vRd = shifter_operand - vRn
-      R[Rd] = vRd
+      R.set(Rd, vRd)		-- R[Rd] = vRd
 
    elseif op == 4 then
       -- ADD, Add
       local vRd = vRn + shifter_operand
-      R[Rd] = vRd
+      R.set(Rd, vRd)		-- R[Rd] = vRd
 
    elseif op == 5 then
       -- ADC, Add with Carry
       local cflag = cpsr[29]
       local vRd = vRn + shifter_operand + cflag
-      R[Rd] = vRd
+      R.set(Rd, vRd)		-- R[Rd] = vRd
 
       if S == 1 and Rd == 15 then
 	 -- if CurrentModeHasSPSR() then
@@ -401,8 +402,8 @@ function data_processing_inst(inst, cpsr)
 	 local b_Rd = bit.tobits(vRd)
 	 local N = b_Rd[31]
 	 local Z = (vRd==0) and 1 or 0
-	 local C = cflag_by_add(vRn, shifter_operand+cpsr[29])
-	 local V = vflag_by_add(vRn, shifter_operand+cpsr[29])
+	 local C = cflag_by_add(vRn, shifter_operand+cflag)
+	 local V = vflag_by_add(vRn, shifter_operand+cflag)
       end
 
    elseif op == 6 then
