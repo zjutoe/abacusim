@@ -30,6 +30,12 @@ function init_regs()
    R['PC'] = 0			-- Program Counter
    R['CPSR'] = 0		-- Current Program Status Register
 
+   local function set(r, v) 
+      -- TODO special treatment of PC
+      if v>=0x100000000 then v = v % 0x100000000 end
+      R[r] = v
+   end
+
    return R
 end
 
@@ -311,12 +317,12 @@ end
 -- 2's complement
 -- assume 32 bits data width, 2^32 - abs(n) + 1
 local function twos_comp(n)
-   return (n<0) and (4294967296+n) or n
+   return (n<0) and (0x100000000 + n) or n
 end
 
 local function cflag_by_add(n1, n2)
    n1, n2 = twos_comp(n1), twos_comp(n2)   
-   return n1+n2 > 4294967295
+   return n1+n2 > 0xFFFFFFFF
 end
 
 local function cflag_by_sub(n1, n2)
@@ -381,12 +387,8 @@ function data_processing_inst(inst, cpsr)
 
    elseif op == 5 then
       -- ADC, Add with Carry
-      local vRd = vRn + shifter_operand + cpsr[29]
-      local C, V = 0, 0
-      if vRd>4294967295 then
-	 C = 1
-	 vRd = vRd - 4294967296
-      end
+      local cflag = cpsr[29]
+      local vRd = vRn + shifter_operand + cflag
       R[Rd] = vRd
 
       if S == 1 and Rd == 15 then
@@ -399,8 +401,8 @@ function data_processing_inst(inst, cpsr)
 	 local b_Rd = bit.tobits(vRd)
 	 local N = b_Rd[31]
 	 local Z = (vRd==0) and 1 or 0
-	 local C
-	 local V
+	 local C = cflag_by_add(vRn, shifter_operand+cpsr[29])
+	 local V = vflag_by_add(vRn, shifter_operand+cpsr[29])
       end
 
    elseif op == 6 then

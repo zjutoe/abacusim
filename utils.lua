@@ -1,6 +1,6 @@
 local function tobits(v)
    if v < 0 then 
-      v = 4294967296 + v
+      v = 0x100000000 + v
    end
 
    local t = {}
