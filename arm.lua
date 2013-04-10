@@ -308,37 +308,38 @@ function set_flags(N, Z, C, V)
    R['CPSR'] = bit.tonum(b_cpsr)
 end
 
-function sign_bit_of(n)
-   if n<0 then n = 1 - n end
+-- 2's complement
+-- assume 32 bits data width, 2^32 - abs(n) + 1
+local function twos_comp(n)
+   return (n<0) and (4294967296+n) or n
+end
+
+local function cflag_by_add(n1, n2)
+   n1, n2 = twos_comp(n1), twos_comp(n2)   
+   return n1+n2 > 4294967295
+end
+
+local function cflag_by_sub(n1, n2)
+   n1, n2 = twos_comp(n1), twos_comp(n2)   
+   return n1 < n2
+end
+
+local function sign_bit_of(n)
    return bit.tobits(n)[31]
 end
 
--- 2's complement
--- assume 32 bits data width, 2^32 - n + 1
-function twos_comp(n)
-   return (n<0) and (4294967297-n) or n
-end
-
-function cflag_by_add(n1, n2)
-   if n1>0 and n2>0 then
-      return n1+n2 > 4294967296 
-   elseif n1<0 and n2<0 then
-      n1, n2 = twos_comp(n1), twos_comp(n2)   
-      return n1+n2 > 4294967296
-   end
-
-   return false     
-end
-
-function cflag_by_sub(n1, n2)
-   
-end
-
-function vflag_by_add(n1, n2, s)
+local function vflag_by_add(n1, n2)
    local s1 = sign_bit_of(n1)
    local s2 = sign_bit_of(n2) 
-   local s3 = sign_bit_of(s)
+   local s3 = sign_bit_of(n1+n2)
    return s1==s2 and s1~=s3
+end
+
+local function vflag_by_sub(n1, n2)
+   local s1 = sign_bit_of(n1)
+   local s2 = sign_bit_of(n2)
+   local s3 = sign_bit_of(n1-n2)
+   return s1~=s2 and s1~=s3
 end
 
 -- inst: table of bits of instruction

@@ -1,9 +1,6 @@
 local function tobits(v)
-   -- TODO assert(v>=0)
-
-   -- v <= 2^32-1
-   if v > 4294967295 then
-      return nil
+   if v < 0 then 
+      v = 4294967296 + v
    end
 
    local t = {}
