@@ -310,7 +310,11 @@ end
 
 function set_flags(N, Z, C, V)
    local b_cpsr = bit.tobits(R['CPSR'])
-   b_cpsr[31], b_cpsr[30], b_cpsr[29], b_cpsr[28] = N, Z, C, V
+   if N then b_cpsr[31] = N end
+   if Z then b_cpsr[30] = Z end
+   if C then b_cpsr[29] = C end
+   if V then b_cpsr[28] = V end
+
    R['CPSR'] = bit.tonum(b_cpsr)
 end
 
@@ -348,9 +352,163 @@ local function vflag_by_sub(n1, n2)
    return s1~=s2 and s1~=s3
 end
 
+local function do_and(inst, cpsr)
+   -- A3.4.1 Instruction encoding
+   local op, S, Rn, Rd = subv(inst, 24, 21), inst[20], subv(inst, 19, 16), subv(inst, 15, 12)
+   local vRn, vRd = R[Rn], R[Rd]
+   -- A5.1 Addressing Mode 1 - Data-processing operands
+   local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
+
+   -- assume op == 0
+
+   local vRd = bit.band(bit.tobits(vRn), bit.tobits(shifter_operand))
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+   
+   if S == 1 and Rd == 15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else
+      --    UNPREDICTABLE
+      -- end
+   elseif S == 1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = shifter_carry_out
+      local V = nil
+      set_flags(N, Z, C, V)
+   end
+end
+
+local function do_xor(inst, cpsr)
+   -- EOR, Logical Exclusive OR
+   local vRd = bit.bxor(bit.tobits(vRn), bit.tobits(shifter_operand))
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+
+end
+
+local function do_sub(inst, cpsr)
+   -- SUB, Subtract
+   local vRd = vRn - shifter_operand
+   R.set(Rd, vRd)		-- R[Rd] = vRd   
+end
+
+local function do_rsb(inst, cpsr)
+   -- RSB, Reverse Subtract
+   local vRd = shifter_operand - vRn
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+end
+
+local function do_add(inst, cpsr)
+   -- ADD, Add
+   local vRd = vRn + shifter_operand
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+   
+   if S==1 and Rd==15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else UNPREDICTABLE
+   elseif S==1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = cflag_by_add(vRn, shifter_operand)
+      local V = vflag_by_add(vRn, shifter_operand)
+      set_flags(N, Z, C, V)
+   end
+end
+
+local function do_adc(inst, cpsr)
+   -- ADC, Add with Carry
+   local cflag = cpsr[29]
+   local vRd = vRn + shifter_operand + cflag
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+   
+   if S == 1 and Rd == 15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else
+      --    UNPREDICTABLE
+      -- end
+   elseif S == 1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = cflag_by_add(vRn, shifter_operand+cflag)
+      local V = vflag_by_add(vRn, shifter_operand+cflag)
+      set_flags(N, Z, C, V)
+   end
+end
+
+
+local function do_sbc(inst, cpsr)
+   -- SBC, Subtract with Carry
+   local vRd = vRn - shifter_operand - ((cpsr[29]==0) and 1 or 0)
+   R[Rd] = vRd
+end
+
+local function do_rsc(inst, cpsr)
+   -- RSC, Reverse Subtract with Carry
+   local vRd = shifter_operand - vRn - ((cpsr[29]==0) and 1 or 0)
+   R[Rd] = vRd
+end
+
+local function do_tst(inst, cpsr)
+   -- TST, Test
+end
+
+local function do_teq(inst, cpsr)
+-- TEQ, Test Equivalence
+end
+
+local function do_cmp(inst, cpsr)
+-- CMP, Compare
+end
+
+local function do_cmn(inst, cpsr)
+   -- CMN, Compare Negated
+end
+
+local function do_orr(inst, cpsr)
+   -- ORR, Logical (inclusive) OR
+end
+
+local function do_mov(inst, cpsr)
+   -- MOV, Move
+end
+
+local function do_bic(inst, cpsr)
+   -- BIC, Bit Clear
+end
+
+local function do_mvn(inst, cpsr)
+   -- MVN, Move Not
+end
+
+
+local ftable_data_processing = {
+   [0] = do_and,
+   [1] = do_xor,
+   [2] = do_sub,
+   [3] = do_rsb,
+   [4] = do_add,
+   [5] = do_adc,
+   [6] = do_sbc,
+   [7] = do_rsc,
+   [8] = do_tst,
+   [9] = do_teq,
+   [10] = do_cmp,
+   [11] = do_cmn,
+   [12] = do_orr,
+   [13] = do_mov,
+   [14] = do_bic,
+   [15] = do_mvn,
+}
+
 -- inst: table of bits of instruction
 -- cpsr: table of bits of CPSR
 function data_processing_inst(inst, cpsr)
+
 
    -- A3.4.1 Instruction encoding
    local op, S, Rn, Rd = subv(inst, 24, 21), inst[20], subv(inst, 19, 16), subv(inst, 15, 12)
@@ -358,82 +516,51 @@ function data_processing_inst(inst, cpsr)
    -- A5.1 Addressing Mode 1 - Data-processing operands
    local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
 
-   -- A3.4 Data-processing instructions
-   -- TODO update flags
-   if op == 0 then
-      -- AND, Logical AND
-      local vRd = bit.band(bit.tobits(vRn), bit.tobits(shifter_operand))
-      R.set(Rd, vRd)		-- R[Rd] = vRd
+   ftable_data_processing[op](inst, cpsr)
 
-
-   elseif op == 1 then
-      -- EOR, Logical Exclusive OR
-      local vRd = bit.bxor(bit.tobits(vRn), bit.tobits(shifter_operand))
-      R.set(Rd, vRd)		-- R[Rd] = vRd
-      
-   elseif op == 2 then
-      -- SUB, Subtract
-      local vRd = vRn - shifter_operand
-      R.set(Rd, vRd)		-- R[Rd] = vRd
-
-   elseif op == 3 then
-      -- RSB, Reverse Subtract
-      local vRd = shifter_operand - vRn
-      R.set(Rd, vRd)		-- R[Rd] = vRd
-
-   elseif op == 4 then
-      -- ADD, Add
-      local vRd = vRn + shifter_operand
-      R.set(Rd, vRd)		-- R[Rd] = vRd
-
-   elseif op == 5 then
-      -- ADC, Add with Carry
-      local cflag = cpsr[29]
-      local vRd = vRn + shifter_operand + cflag
-      R.set(Rd, vRd)		-- R[Rd] = vRd
-
-      if S == 1 and Rd == 15 then
-	 -- if CurrentModeHasSPSR() then
-	 --    CPSR = SPSR
-	 -- else
-	 --    UNPREDICTABLE
-	 -- end
-      elseif S == 1 then
-	 local b_Rd = bit.tobits(vRd)
-	 local N = b_Rd[31]
-	 local Z = (vRd==0) and 1 or 0
-	 local C = cflag_by_add(vRn, shifter_operand+cflag)
-	 local V = vflag_by_add(vRn, shifter_operand+cflag)
-      end
-
-   elseif op == 6 then
-      -- SBC, Subtract with Carry
-      local vRd = vRn - shifter_operand - ((cpsr[29]==0) and 1 or 0)
-      R[Rd] = vRd
-
-   elseif op == 7 then
-      -- RSC, Reverse Subtract with Carry
-      local vRd = shifter_operand - vRn - ((cpsr[29]==0) and 1 or 0)
-      R[Rd] = vRd
-
-   elseif op == 8 then
-      -- TST, Test
-   elseif op == 9 then
-      -- TEQ, Test Equivalence
-   elseif op == 10 then
-      -- CMP, Compare
-   elseif op == 11 then
-      -- CMN, Compare Negated
-   elseif op == 12 then
-      -- ORR, Logical (inclusive) OR
-   elseif op == 13 then
-      -- MOV, Move
-   elseif op == 14 then
-      -- BIC, Bit Clear
-   elseif op == 15 then
-      -- MVN, Move Not
-   end
-   
+   -- -- A3.4 Data-processing instructions
+   -- -- TODO update flags
+   -- if op == 0 then
+   --    do_and(inst, cpsr)
+   -- elseif op == 1 then
+   --    do_xor(inst, cpsr)
+   -- elseif op == 2 then
+   --    do_sub(inst, cpsr)
+   -- elseif op == 3 then
+   --    do_rsb(inst, cpsr)
+   -- elseif op == 4 then
+   --    do_add(inst, cpsr)
+   -- elseif op == 5 then
+   --    do_adc(inst, cpsr)
+   -- elseif op == 6 then
+   --    do_sbc(inst, cpsr)
+   -- elseif op == 7 then
+   --    do_rsc(inst, cpsr)
+   -- elseif op == 8 then
+   --    do_tst(inst, cpsr)
+   --    -- TST, Test
+   -- elseif op == 9 then
+   --    do_teq(inst, cpsr)
+   --    -- TEQ, Test Equivalence
+   -- elseif op == 10 then
+   --    do_cmp(inst, cpsr)
+   --    -- CMP, Compare
+   -- elseif op == 11 then
+   --    do_cmn(inst, cpsr)
+   --    -- CMN, Compare Negated
+   -- elseif op == 12 then
+   --    do_orr(inst, cpsr)
+   --    -- ORR, Logical (inclusive) OR
+   -- elseif op == 13 then
+   --    do_mov(inst, cpsr)
+   --    -- MOV, Move
+   -- elseif op == 14 then
+   --    do_bic(inst, cpsr)
+   --    -- BIC, Bit Clear
+   -- elseif op == 15 then
+   --    do_mvn(inst, cpsr)
+   --    -- MVN, Move Not
+   -- end   
 end
 
 
