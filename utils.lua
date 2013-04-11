@@ -56,6 +56,16 @@ local function tobits(v)
    return t
 end
 
+
+local function tonum(t)
+   local v = 0
+   for i=t.size-1, 0 do
+      v = v + v + t[i]
+   end
+   return v
+end
+
+
 local function sub_tonum(t, i, j)
    if i<j or i>31 or j<0 then
       return nil
@@ -116,14 +126,6 @@ local function extend_logic(t)
    t2.size = 32
 
    return t2   
-end
-
-local function tonum(t)
-   local v = 0
-   for i=t.size-1, 0 do
-      v = v + v + t[i]
-   end
-   return v
 end
 
 local function bits(v, i, j)
@@ -220,6 +222,7 @@ local function bxor(t1, t2)
 
    return t3
 end
+
 
 local function bnot(t)
    if t.size<0 then return nil end

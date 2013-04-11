@@ -442,9 +442,31 @@ end
 
 
 local function do_sbc(inst, cpsr)
+   local op, S, Rn, Rd = subv(inst, 24, 21), inst[20], subv(inst, 19, 16), subv(inst, 15, 12)
+   local vRn, vRd = R[Rn], R[Rd]
+   -- A5.1 Addressing Mode 1 - Data-processing operands
+   local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
+
    -- SBC, Subtract with Carry
-   local vRd = vRn - shifter_operand - ((cpsr[29]==0) and 1 or 0)
-   R[Rd] = vRd
+   local cflag = cpsr[29]
+   local not_cflag = cflag==0 and 1 or 0
+   local vRd = vRn - shifter_operand - not_cflag
+   R.set(Rd, vRd)
+   
+   if S == 1 and Rd == 15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else
+      --    UNPREDICTABLE
+      -- end
+   elseif S == 1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = not cflag_by_sub(vRn, shifter_operand - not_cflag)
+      local V = vflag_by_sub(vRn, shifter_operand - not_cflag)
+      set_flags(N, Z, C, V)
+   end      
 end
 
 local function do_rsc(inst, cpsr)
