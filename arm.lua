@@ -517,35 +517,150 @@ local function do_rsc(inst, cpsr)
 end
 
 local function do_tst(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- TST, Test
+   local alu_out = bit.band(Rn, shifter_operand)
+   local N = alu_out[31]
+   local Z = (bit.tonum(alu_out)==0) and 1 or 0
+   local C = shifter_carry_out
+   local V = nil
+   set_flags(N, Z, C, V)   
 end
 
 local function do_teq(inst, cpsr)
--- TEQ, Test Equivalence
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
+   -- TEQ, Test Equivalence
+   local alu_out = bit.bxor(Rn, shifter_operand)
+   local N = alu_out[31]
+   local Z = (bit.tonum(alu_out)==0) and 1 or 0
+   local C = shifter_carry_out
+   local V = nil
+   set_flags(N, Z, C, V)   
 end
 
 local function do_cmp(inst, cpsr)
--- CMP, Compare
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
+   -- CMP, Compare
+   local alu_out = Rn - shifter_operand
+   local N = bit.tobits(alu_out)[31]
+   local Z = (alu_out==0) and 1 or 0
+   local C = cflag_by_sub(vRn, shifter_operand)
+   local V = vflag_by_sub(vRn, shifter_operand)
+   set_flags(N, Z, C, V)   
 end
 
 local function do_cmn(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- CMN, Compare Negated
+   local alu_out = Rn + shifter_operand
+   local N = bit.tobits(alu_out)[31]
+   local Z = (alu_out==0) and 1 or 0
+   local C = cflag_by_add(vRn, shifter_operand)
+   local V = vflag_by_add(vRn, shifter_operand)
+   set_flags(N, Z, C, V)   
 end
 
 local function do_orr(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- ORR, Logical (inclusive) OR
+   local vRd = bit.bor(bit.tobits(vRn), bit.tobits(shifter_operand))
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+   
+   if S == 1 and Rd == 15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else
+      --    UNPREDICTABLE
+      -- end
+   elseif S == 1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = shifter_carry_out
+      local V = nil
+      set_flags(N, Z, C, V)
+   end
 end
 
 local function do_mov(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+
    -- MOV, Move
+   local vRd = shifter_operand
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+
+   if S == 1 and Rd == 15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else
+      --    UNPREDICTABLE
+      -- end
+   elseif S == 1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = shifter_carry_out
+      local V = nil
+      set_flags(N, Z, C, V)
+   end
 end
 
 local function do_bic(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- BIC, Bit Clear
+   local vRd = bit.band(bit.tobits(vRn), bit.bnot(bit.tobits(shifter_operand)))
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+
+   if S == 1 and Rd == 15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else
+      --    UNPREDICTABLE
+      -- end
+   elseif S == 1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = shifter_carry_out
+      local V = nil
+      set_flags(N, Z, C, V)
+   end
+
 end
 
 local function do_mvn(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+
    -- MVN, Move Not
+   local vRd = bit.bnot(bit.tobits(shifter_operand))
+   R.set(Rd, vRd)		-- R[Rd] = vRd
+
+   if S == 1 and Rd == 15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else
+      --    UNPREDICTABLE
+      -- end
+   elseif S == 1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = shifter_carry_out
+      local V = nil
+      set_flags(N, Z, C, V)
+   end
 end
 
 
