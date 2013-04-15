@@ -29,11 +29,28 @@ function init_regs()
    end
    R['PC'] = 0			-- Program Counter
    R['CPSR'] = 0		-- Current Program Status Register
+   
+   local r_spsr = {}
+   r_spsr[0x11] = 0		-- 0b10001, FIQ, fiq
+   r_spsr[0x12] = 0		-- 0b10010, IRQ, irq 
+   r_spsr[0x13] = 0		-- 0b10011, Supervisor, svc
+   r_spsr[0x17] = 0		-- 0b10111, Abort, abt
+   r_spsr[0x1B] = 0		-- 0b11011, Undefined, und
+   -- User and System modes do not have SPSR
+   R['SPSR'] = r_spsr
 
-   local function set(r, v) 
+   function set(r, v) 
       -- TODO special treatment of PC
       if v>=0x100000000 then v = v % 0x100000000 end
       R[r] = v
+   end
+
+   function set_cpsr(v)
+      R['CPSR'] = v
+   end
+
+   function get_spsr(cpu_mode)
+      return R['SPSR'][cpu_mode]
    end
 
    return R
@@ -361,6 +378,15 @@ local function decode_inst(inst, cpsr)
    return op, S, Rn, Rd, shifter_operand, shifter_carry_out   
 end
 
+local function restore_cpsr(inst)
+      local cpu_mode = subv(inst, 4, 0)
+      if cpu_mode ~= 0x10 and cpu_mode ~= 0x1F then -- ~= usr and ~= sys
+	 R.set_cpsr(R.get_spsr(cpu_mode))
+      else
+	 -- Error UNPREDICTABLE
+      end
+end
+
 local function do_and(inst, cpsr)   
    local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
    local vRn = R[Rn]
@@ -371,11 +397,7 @@ local function do_and(inst, cpsr)
    R.set(Rd, vRd)		-- R[Rd] = vRd
    
    if S == 1 and Rd == 15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else
-      --    UNPREDICTABLE
-      -- end
+      restore_cpsr(inst)
    elseif S == 1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
@@ -423,9 +445,7 @@ local function do_add(inst, cpsr)
    R.set(Rd, vRd)		-- R[Rd] = vRd
    
    if S==1 and Rd==15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else UNPREDICTABLE
+      restore_cpsr(inst)
    elseif S==1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
@@ -446,11 +466,7 @@ local function do_adc(inst, cpsr)
    R.set(Rd, vRd)		-- R[Rd] = vRd
    
    if S == 1 and Rd == 15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else
-      --    UNPREDICTABLE
-      -- end
+      restore_cpsr(inst)
    elseif S == 1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
@@ -473,11 +489,7 @@ local function do_sbc(inst, cpsr)
    R.set(Rd, vRd)
    
    if S == 1 and Rd == 15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else
-      --    UNPREDICTABLE
-      -- end
+      restore_cpsr(inst)
    elseif S == 1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
@@ -501,11 +513,7 @@ local function do_rsc(inst, cpsr)
    R.set(Rd, vRd)
 
    if S == 1 and Rd == 15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else
-      --    UNPREDICTABLE
-      -- end
+      restore_cpsr(inst)
    elseif S == 1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
@@ -577,11 +585,7 @@ local function do_orr(inst, cpsr)
    R.set(Rd, vRd)		-- R[Rd] = vRd
    
    if S == 1 and Rd == 15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else
-      --    UNPREDICTABLE
-      -- end
+      restore_cpsr(inst)
    elseif S == 1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
@@ -600,11 +604,7 @@ local function do_mov(inst, cpsr)
    R.set(Rd, vRd)		-- R[Rd] = vRd
 
    if S == 1 and Rd == 15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else
-      --    UNPREDICTABLE
-      -- end
+      restore_cpsr(inst)
    elseif S == 1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
@@ -624,11 +624,7 @@ local function do_bic(inst, cpsr)
    R.set(Rd, vRd)		-- R[Rd] = vRd
 
    if S == 1 and Rd == 15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else
-      --    UNPREDICTABLE
-      -- end
+      restore_cpsr(inst)
    elseif S == 1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
@@ -648,11 +644,7 @@ local function do_mvn(inst, cpsr)
    R.set(Rd, vRd)		-- R[Rd] = vRd
 
    if S == 1 and Rd == 15 then
-      -- if CurrentModeHasSPSR() then
-      --    CPSR = SPSR
-      -- else
-      --    UNPREDICTABLE
-      -- end
+      restore_cpsr(inst)
    elseif S == 1 then
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
