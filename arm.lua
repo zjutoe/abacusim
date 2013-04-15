@@ -352,12 +352,18 @@ local function vflag_by_sub(n1, n2)
    return s1~=s2 and s1~=s3
 end
 
-local function do_and(inst, cpsr)
+local function decode_inst(inst, cpsr)
    -- A3.4.1 Instruction encoding
    local op, S, Rn, Rd = subv(inst, 24, 21), inst[20], subv(inst, 19, 16), subv(inst, 15, 12)
-   local vRn, vRd = R[Rn], R[Rd]
    -- A5.1 Addressing Mode 1 - Data-processing operands
    local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
+
+   return op, S, Rn, Rd, shifter_operand, shifter_carry_out   
+end
+
+local function do_and(inst, cpsr)   
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
 
    -- assume op == 0
 
@@ -381,6 +387,9 @@ local function do_and(inst, cpsr)
 end
 
 local function do_xor(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- EOR, Logical Exclusive OR
    local vRd = bit.bxor(bit.tobits(vRn), bit.tobits(shifter_operand))
    R.set(Rd, vRd)		-- R[Rd] = vRd
@@ -388,18 +397,27 @@ local function do_xor(inst, cpsr)
 end
 
 local function do_sub(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- SUB, Subtract
    local vRd = vRn - shifter_operand
    R.set(Rd, vRd)		-- R[Rd] = vRd   
 end
 
 local function do_rsb(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- RSB, Reverse Subtract
    local vRd = shifter_operand - vRn
    R.set(Rd, vRd)		-- R[Rd] = vRd
 end
 
 local function do_add(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- ADD, Add
    local vRd = vRn + shifter_operand
    R.set(Rd, vRd)		-- R[Rd] = vRd
@@ -412,13 +430,16 @@ local function do_add(inst, cpsr)
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
       local Z = (vRd==0) and 1 or 0
-      local C = cflag_by_add(vRn, shifter_operand)
-      local V = vflag_by_add(vRn, shifter_operand)
+      local C = cflag_by_add(vRn, shifter_operand) and 1 or 0
+      local V = vflag_by_add(vRn, shifter_operand) and 1 or 0
       set_flags(N, Z, C, V)
    end
 end
 
 local function do_adc(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
    -- ADC, Add with Carry
    local cflag = cpsr[29]
    local vRd = vRn + shifter_operand + cflag
@@ -434,18 +455,16 @@ local function do_adc(inst, cpsr)
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
       local Z = (vRd==0) and 1 or 0
-      local C = cflag_by_add(vRn, shifter_operand+cflag)
-      local V = vflag_by_add(vRn, shifter_operand+cflag)
+      local C = cflag_by_add(vRn, shifter_operand+cflag) and 1 or 0
+      local V = vflag_by_add(vRn, shifter_operand+cflag) and 1 or 0
       set_flags(N, Z, C, V)
    end
 end
 
 
 local function do_sbc(inst, cpsr)
-   local op, S, Rn, Rd = subv(inst, 24, 21), inst[20], subv(inst, 19, 16), subv(inst, 15, 12)
-   local vRn, vRd = R[Rn], R[Rd]
-   -- A5.1 Addressing Mode 1 - Data-processing operands
-   local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
 
    -- SBC, Subtract with Carry
    local cflag = cpsr[29]
@@ -463,16 +482,38 @@ local function do_sbc(inst, cpsr)
       local b_Rd = bit.tobits(vRd)
       local N = b_Rd[31]
       local Z = (vRd==0) and 1 or 0
-      local C = not cflag_by_sub(vRn, shifter_operand - not_cflag)
-      local V = vflag_by_sub(vRn, shifter_operand - not_cflag)
+      local C = cflag_by_sub(vRn, shifter_operand - not_cflag) and 0 or 1
+      local V = vflag_by_sub(vRn, shifter_operand - not_cflag) and 1 or 0
       set_flags(N, Z, C, V)
    end      
 end
 
+
 local function do_rsc(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local vRn = R[Rn]
+
+   local cflag = cpsr[29]
+   local not_cflag = cflag==0 and 1 or 0
+
    -- RSC, Reverse Subtract with Carry
-   local vRd = shifter_operand - vRn - ((cpsr[29]==0) and 1 or 0)
-   R[Rd] = vRd
+   local vRd = shifter_operand - vRn - not_cflag
+   R.set(Rd, vRd)
+
+   if S == 1 and Rd == 15 then
+      -- if CurrentModeHasSPSR() then
+      --    CPSR = SPSR
+      -- else
+      --    UNPREDICTABLE
+      -- end
+   elseif S == 1 then
+      local b_Rd = bit.tobits(vRd)
+      local N = b_Rd[31]
+      local Z = (vRd==0) and 1 or 0
+      local C = cflag_by_sub(vRn, shifter_operand - not_cflag) and 0 or 1
+      local V = vflag_by_sub(vRn, shifter_operand - not_cflag) and 1 or 0
+      set_flags(N, Z, C, V)
+   end         
 end
 
 local function do_tst(inst, cpsr)
