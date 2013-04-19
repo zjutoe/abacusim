@@ -1,0 +1,85 @@
+
+hello.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <data_process>:
+   0:	e52db004 	push	{fp}		; (str fp, [sp, #-4]!)
+   4:	e28db000 	add	fp, sp, #0
+   8:	e24dd00c 	sub	sp, sp, #12
+   c:	e3a03000 	mov	r3, #0
+  10:	e50b300c 	str	r3, [fp, #-12]
+  14:	e3a03000 	mov	r3, #0
+  18:	e50b3008 	str	r3, [fp, #-8]
+  1c:	ea000006 	b	3c <data_process+0x3c>
+  20:	e51b200c 	ldr	r2, [fp, #-12]
+  24:	e51b3008 	ldr	r3, [fp, #-8]
+  28:	e0823003 	add	r3, r2, r3
+  2c:	e50b300c 	str	r3, [fp, #-12]
+  30:	e51b3008 	ldr	r3, [fp, #-8]
+  34:	e2833001 	add	r3, r3, #1
+  38:	e50b3008 	str	r3, [fp, #-8]
+  3c:	e51b3008 	ldr	r3, [fp, #-8]
+  40:	e3530063 	cmp	r3, #99	; 0x63
+  44:	dafffff5 	ble	20 <data_process+0x20>
+  48:	e51b300c 	ldr	r3, [fp, #-12]
+  4c:	e1a00003 	mov	r0, r3
+  50:	e28bd000 	add	sp, fp, #0
+  54:	e8bd0800 	pop	{fp}
+  58:	e12fff1e 	bx	lr
+
+0000005c <main>:
+  5c:	e92d4810 	push	{r4, fp, lr}
+  60:	e28db008 	add	fp, sp, #8
+  64:	e24dd00c 	sub	sp, sp, #12
+  68:	e50b0010 	str	r0, [fp, #-16]
+  6c:	e50b1014 	str	r1, [fp, #-20]
+  70:	e59f4020 	ldr	r4, [pc, #32]	; 98 <main+0x3c>
+  74:	ebfffffe 	bl	0 <data_process>
+  78:	e1a03000 	mov	r3, r0
+  7c:	e1a00004 	mov	r0, r4
+  80:	e1a01003 	mov	r1, r3
+  84:	ebfffffe 	bl	0 <printf>
+  88:	e3a03000 	mov	r3, #0
+  8c:	e1a00003 	mov	r0, r3
+  90:	e24bd008 	sub	sp, fp, #8
+  94:	e8bd8810 	pop	{r4, fp, pc}
+  98:	00000000 	andeq	r0, r0, r0
+
+Disassembly of section .rodata:
+
+00000000 <.rodata>:
+   0:	000a6425 	andeq	r6, sl, r5, lsr #8
+
+Disassembly of section .comment:
+
+00000000 <.comment>:
+   0:	43434700 	movtmi	r4, #14080	; 0x3700
+   4:	4428203a 	strtmi	r2, [r8], #-58	; 0x3a
+   8:	61696265 	cmnvs	r9, r5, ror #4
+   c:	2e34206e 	cdpcs	0, 3, cr2, cr4, cr14, {3}
+  10:	2d332e36 	ldccs	14, cr2, [r3, #-216]!	; 0xffffff28
+  14:	70722b38 	rsbsvc	r2, r2, r8, lsr fp
+  18:	20293169 	eorcs	r3, r9, r9, ror #2
+  1c:	2e362e34 	mrccs	14, 1, r2, cr6, cr4, {1}
+  20:	Address 0x00000020 is out of bounds.
+
+
+Disassembly of section .ARM.attributes:
+
+00000000 <.ARM.attributes>:
+   0:	00003041 	andeq	r3, r0, r1, asr #32
+   4:	61656100 	cmnvs	r5, r0, lsl #2
+   8:	01006962 	tsteq	r0, r2, ror #18
+   c:	00000026 	andeq	r0, r0, r6, lsr #32
+  10:	06003605 	streq	r3, [r0], -r5, lsl #12
+  14:	09010806 	stmdbeq	r1, {r1, r2, fp}
+  18:	12020a01 	andne	r0, r2, #4096	; 0x1000
+  1c:	15011404 	strne	r1, [r1, #-1028]	; 0x404
+  20:	18031701 	stmdane	r3, {r0, r8, r9, sl, ip}
+  24:	1a011901 	bne	46430 <main+0x463d4>
+  28:	1c031b02 	stcne	11, cr1, [r3], {2}
+  2c:	2c061e01 	stccs	14, cr1, [r6], {1}
+  30:	Address 0x00000030 is out of bounds.
+
