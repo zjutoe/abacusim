@@ -57,6 +57,19 @@ local function tobits(v)
 end
 
 
+local function tostr(t)
+   local s = {}
+   for i=31, 0, -1 do
+      if t[i] then 
+	 s[32-i] = (t[i]==1) and '1' or '0'
+      else
+	 s[32-i] = '0'
+      end
+   end
+   return table.concat(s)
+end
+
+
 local function tonum(t)
    local v = 0
    for i=t.size-1, 0 do
@@ -338,6 +351,7 @@ end
 bit = {
    tobits = tobits,
    tonum = tonum,
+   tostr = tostr,
    band = band,
    bor = bor,
    bxor = bxor,
