@@ -1,6 +1,7 @@
 -- I'm trying to comply with the ARM V5 Architecture Spec, which is DDI_01001
 
 require 'utils'
+require 'icache'
 
 -- get v[n:m]
 local function bits(v, n, m)
@@ -22,10 +23,10 @@ end
 
 function init_regs()
    local R = {}
-   for i=0,14 do
+   for i=0,15 do
       R[i] = 0
    end
-   R['PC'] = 0			-- Program Counter
+   --['PC'] = 0			-- Program Counter
    R['CPSR'] = 0		-- Current Program Status Register
    
    local r_spsr = {}
@@ -37,19 +38,31 @@ function init_regs()
    -- User and System modes do not have SPSR
    R['SPSR'] = r_spsr
 
-   function set(r, v) 
+   function set(self, r, v) 
       -- TODO special treatment of PC
       if v>=0x100000000 then v = v % 0x100000000 end
-      R[r] = v
+      self[r] = v
    end
 
-   function set_cpsr(v)
-      R['CPSR'] = v
+   function get(self, addr)
+      -- if addr = 15 then
+      -- 	 return self['PC'] + 8
+      -- end
+      return self[addr]
+   end
+
+   function set_cpsr(self, v)
+      self['CPSR'] = v
    end
 
    function get_spsr(cpu_mode)
-      return R['SPSR'][cpu_mode]
-   end
+      return self['SPSR'][cpu_mode]
+   end   
+
+   R.set = set
+   R.get = get
+   R.set_cpsr = set_cpsr
+   R.get_cpsr = get_cpsr
 
    return R
 end
@@ -62,7 +75,7 @@ function dump_regs(R)
    end
 end
 
-dump_regs(R)
+--dump_regs(R)
 
 function cond(inst, cpsr)
 
@@ -173,7 +186,8 @@ function get_shifter_operand(inst, cpsr)
 	 shifter_carry_out = b_shifter_operand[31]
       end
 
-   else
+   else				-- I ~= 1
+
       local Rm = subv(inst, 3, 0)
       local vRm = R[Rm]		-- TODO for PC (R15) it should add 8
       local b_Rm = bit.tobits(vRm)
@@ -321,6 +335,8 @@ function get_shifter_operand(inst, cpsr)
       end
    
       return shifter_operand, shifter_carry_out
+   end				-- I==1
+
 end
 
 function set_flags(N, Z, C, V)
@@ -732,18 +748,174 @@ function data_processing_inst(inst, cpsr)
 end
 
 
-function decode(inst)
+function inst_is_dp_imm_shift(inst)
+   return inst[27]==0 and inst[26]==0 and inst[25]==0 and inst[4] == 0
+end
 
-   local c = cond(inst)
-   
-   if c == true then
-      local op = opcode(inst)
-      
-   else
-      
-   end
-   
+function inst_is_misc(inst) 
+   return inst[27]==0 and inst[26]==0 and inst[25]==0 and
+      inst[24]==1 and inst[23]==0 and inst[20]==0 and
+      (inst[4] == 0 or inst[4]==1 and inst[7]==1)
+end
+
+function inst_is_dp_reg_shift(inst)
+   return inst[27]==0 and inst[26]==0 and inst[25]==0 and inst[7]==0 and inst[4] == 1
+end
+
+function inst_is_multi_extra_ld_st(inst)
+   return inst[27]==0 and inst[26]==0 and inst[25]==0 and inst[7]==1 and inst[4] == 1
+end
+
+function inst_is_dp_imm(inst)
+   return inst[27]==0 and inst[26]==0 and inst[25]==1
+end
+
+function inst_is_undef(inst)
+   return inst[27]==0 and inst[26]==0 and inst[25]==1 and inst[24]==1 and inst[23]==0 and inst[21]==0 and inst[20]==0
+end
+
+function inst_is_mv_imm_to_status_reg(inst)
+   return inst[27]==0 and inst[26]==0 and inst[25]==1 and inst[24]==1 and inst[23]==0 and inst[21]==1 and inst[20]==0
+end
+
+function inst_is_ld_st_imm_offset(inst)
+   return inst[27]==0 and inst[26]==1 and inst[25]==0
+end
+
+function inst_is_ld_st_reg_offset(inst)
+   return inst[27]==0 and inst[26]==1 and inst[25]==1 and inst[4]==0
+end
+
+function inst_is_media(inst)
+   return inst[27]==0 and inst[26]==1 and inst[25]==1 and inst[4]==1
+end
+
+function inst_is_arch_undef(inst)
+   return inst[27]==0 and inst[26]==1 and inst[25]==1 and inst[24]==1 and inst[23]==1 and inst[22]==1 and
+      inst[21]==1 and inst[20]==1 and inst[7]==0 and inst[6]==1 and inst[5]==1 and inst[4]==1 
+end
+
+function inst_is_ld_st_mult(inst)
+   return inst[27]==1 and inst[26]==0 and inst[25]==0
+end
+
+function inst_is_ld_st_mult(inst)
+   return inst[27]==1 and inst[26]==0 and inst[25]==0
+end
+
+function inst_is_b_bl(inst)
+   return inst[27]==1 and inst[26]==0 and inst[25]==1
+end
+
+function inst_is_cop_ld_st_double_reg_trans(inst)
+   return inst[27]==1 and inst[26]==1 and inst[25]==0
+end
+
+function inst_is_cop_dp(inst)
+   return inst[27]==1 and inst[26]==1 and inst[25]==1 and inst[24]==0 and inst[4]==0
+end
+
+function inst_is_cop_reg_trans(inst)
+   return inst[27]==1 and inst[26]==1 and inst[25]==1 and inst[24]==0 and inst[4]==1
+end
+
+function inst_is_sw_irq(inst)
+   return inst[27]==1 and inst[26]==1 and inst[25]==1 and inst[24]==1
 end
 
 
+local inst_type_checkers = {
+   inst_is_dp_imm_shift,
+   inst_is_misc, 
+   inst_is_dp_reg_shift,
+   inst_is_multi_extra_ld_st,
+   inst_is_dp_imm,
+   inst_is_undef,
+   inst_is_mv_imm_to_status_reg,
+   inst_is_ld_st_imm_offset,
+   inst_is_ld_st_reg_offset,
+   inst_is_media,
+   inst_is_arch_undef,
+   inst_is_ld_st_mult,
+   inst_is_ld_st_mult,
+   inst_is_b_bl,
+   inst_is_cop_ld_st_double_reg_trans,
+   inst_is_cop_dp,
+   inst_is_cop_reg_trans,
+   inst_is_sw_irq,
+}
 
+local inst_type_name = {
+   "dp_imm_shift",
+   "misc", 
+   "dp_reg_shift",
+   "multi_extra_ld_st",
+   "dp_imm",
+   "undef",
+   "mv_imm_to_status_reg",
+   "ld_st_imm_offset",
+   "ld_st_reg_offset",
+   "media",
+   "arch_undef",
+   "ld_st_mult",
+   "ld_st_mult",
+   "b_bl",
+   "cop_ld_st_double_reg_trans",
+   "cop_dp",
+   "cop_reg_trans",
+   "sw_irq",
+}
+
+function inst_type(inst)
+   for i, v in ipairs(inst_type_checkers) do
+      if v(inst) then
+	 return inst_type_name[i]
+      end
+   end
+end
+
+
+function decode(inst)
+   print (inst_type(inst))         
+   -- local c = cond(inst)   
+   --    if c == true then   
+   --    else
+   --       print
+   --    end   
+end
+
+
+function exec_inst(inst)
+   if inst == nil then return nil end
+
+   t_inst = bit.tobits(inst)
+   decode(t_inst)
+   return true
+end 
+
+-- assume the iCache and register file are already initialized
+function loop(inst_cache, data_cache, reg_file)
+   
+   local pc = reg_file:get(15)
+   local inst = inst_cache:rd(pc)
+   local inst_1 = inst_cache:rd(pc + 4)
+   local inst_2 = inst_cache:rd(pc + 8)
+   reg_file:set(15, pc+8)
+
+   ret = exec_inst(inst)
+   while ret do
+      -- these are 2 simulated branch delay slot
+      inst = inst_1
+      inst_1 = inst_2
+
+      pc = reg_file:get(15)
+      inst_2 = inst_cache:rd(pc+4)
+      reg_file:set(15, pc+4)
+      
+      -- return false on errors, or return nil on end of exec
+      ret = exec_inst(inst)
+   end
+
+end
+
+loop(icache, nil, R)

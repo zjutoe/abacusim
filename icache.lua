@@ -27,6 +27,7 @@ icache = {
 }
 
 function icache.rd(self, addr)
+   if self[math.floor(addr / 4) + 1] == nil then print ('icache miss') end
    return self[math.floor(addr / 4) + 1]
 end
 
