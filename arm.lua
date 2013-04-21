@@ -885,7 +885,7 @@ function decode(inst)
 end
 
 
-function exec_inst(inst)
+local function exec_inst(inst)
    if inst == nil then return nil end
 
    t_inst = bit.tobits(inst)
@@ -894,7 +894,7 @@ function exec_inst(inst)
 end 
 
 -- assume the iCache and register file are already initialized
-function loop(inst_cache, data_cache, reg_file)
+local function loop(inst_cache, data_cache, reg_file)
    
    local pc = reg_file:get(15)
    local inst = inst_cache:rd(pc)
