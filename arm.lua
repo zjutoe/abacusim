@@ -2,15 +2,16 @@
 
 require 'utils'
 require 'icache'
+require 'dcache'
 
 -- get v[n:m]
 local function bits(v, n, m)
    return bit.bits(v, n, m)
 end
 
-local function subv(t, n, m)
-   return bit.tonum(bit.sub(t, n, m))
-end
+-- local function subv(t, n, m)
+--    return bit.tonum(bit.sub(t, n, m))
+-- end
 
 local function rotate_left(v, n)
    return bit.tonum(bit.rleft(v, n))
@@ -39,21 +40,17 @@ function init_regs()
    R['SPSR'] = r_spsr
 
    function set(self, r, v) 
-      -- TODO special treatment of PC
       if v>=0x100000000 then v = v % 0x100000000 end
       self[r] = v
    end
 
    function get(self, addr)
-      -- if addr = 15 then
-      -- 	 return self['PC'] + 8
-      -- end
       return self[addr]
    end
 
-   function set_cpsr(self, v)
-      self['CPSR'] = v
-   end
+   function set_spsr(cpu_mode)
+      return self['SPSR'][cpu_mode]
+   end   
 
    function get_spsr(cpu_mode)
       return self['SPSR'][cpu_mode]
@@ -61,8 +58,8 @@ function init_regs()
 
    R.set = set
    R.get = get
-   R.set_cpsr = set_cpsr
-   R.get_cpsr = get_cpsr
+   R.set_spsr = set_spsr
+   R.get_spsr = get_spsr
 
    return R
 end
@@ -235,7 +232,7 @@ function inst_is_sw_irq(inst)
 end
 
 
-local inst_type_checkers = {
+local inst_type_checker = {
    inst_is_dp_imm_shift,
    inst_is_misc, 
    inst_is_dp_reg_shift,
@@ -277,30 +274,55 @@ local inst_type_name = {
    "sw_irq",
 }
 
-function inst_type(inst)
-   for i, v in ipairs(inst_type_checkers) do
-      if v(inst) then
-	 return inst_type_name[i]
-      end
-   end
-end
+require "data_processing"
+
+local inst_handler = {
+   do_dp_imm_shift,
+   do_misc, 
+   do_dp_reg_shift,
+   do_multi_extra_ld_st,
+   do_dp_imm,
+   do_undef,
+   do_mv_imm_to_status_reg,
+   do_ld_st_imm_offset,
+   do_ld_st_reg_offset,
+   do_media,
+   do_arch_undef,
+   do_ld_st_mult,
+   do_ld_st_mult,
+   do_b_bl,
+   do_cop_ld_st_double_reg_trans,
+   do_cop_dp,
+   do_cop_reg_trans,
+   do_sw_irq,
+}
 
 
 function decode(inst)
-   print (inst_type(inst))         
-   -- local c = cond(inst)   
-   --    if c == true then   
-   --    else
-   --       print
-   --    end   
+   local i_handler
+   for i, v in ipairs(inst_type_checker) do
+      if v(inst) then
+	 i_handler = inst_handler[i]
+	 break
+      end
+   end
+
+   return i_handler
 end
 
 
-local function exec_inst(inst)
+local function exec_inst(inst, dcache, R)
    if inst == nil then return nil end
 
-   t_inst = bit.tobits(inst)
-   decode(t_inst)
+   io.write(string.format("%x: ", inst))
+   local t_inst = bit.tobits(inst)
+   local inst_hand = decode(t_inst)
+   if inst_hand then 
+      inst_hand(t_inst, dcache, R)
+   else
+      print("nil handler")
+   end
+
    return true
 end 
 
@@ -313,7 +335,7 @@ local function loop(inst_cache, data_cache, reg_file)
    local inst_2 = inst_cache:rd(pc + 8)
    reg_file:set(15, pc+8)
 
-   ret = exec_inst(inst)
+   ret = exec_inst(inst, data_cache, reg_file)
    while ret do
       -- these are 2 simulated branch delay slot
       inst = inst_1
@@ -324,9 +346,9 @@ local function loop(inst_cache, data_cache, reg_file)
       reg_file:set(15, pc+4)
       
       -- return false on errors, or return nil on end of exec
-      ret = exec_inst(inst)
+      ret = exec_inst(inst, data_cache, reg_file)
    end
 
 end
 
-loop(icache, nil, R)
+loop(icache, dcache, R)

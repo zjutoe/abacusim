@@ -1,6 +1,13 @@
+require "utils"
+require 'dbg'
+
+local function subv(t, n, m)
+   return bit.tonum(bit.sub(t, n, m))
+end
+
 -- inst: table of bits of instruction
 -- cpsr: table of bits of CPSR
-function get_shifter_operand(inst, cpsr)
+function get_shifter_operand(inst, cpsr, R)
    local I = inst[25]
    local cflag = cpsr[29]
 
@@ -19,7 +26,7 @@ function get_shifter_operand(inst, cpsr)
       local rotate_imm = bit.tonum(b_rotate_imm)
       local b_shifter_operand = bit.ror( b_immed_8, rotate_imm*2 )
 
-      shifter_operand = b.tonum(b_shifter_operand)
+      shifter_operand = bit.tonum(b_shifter_operand)
       if rotate_imm == 0 then
 	 shifter_carry_out = cflag
       else
@@ -33,7 +40,7 @@ function get_shifter_operand(inst, cpsr)
       local b_Rm = bit.tobits(vRm)
       local op114 = subv(inst, 11, 4)
       local op64 = subv(inst, 6, 4)
-      local op74 = sub(inst, 7, 4)
+      local op74 = subv(inst, 7, 4)
 
       if subv(inst, 11, 4) == 0 then
 	 -- A5.1.4 Data-processing operands - Register
@@ -174,15 +181,15 @@ function get_shifter_operand(inst, cpsr)
 	 shifter_carry_out = b_Rm[0]
       end
    
-      return shifter_operand, shifter_carry_out
    end				-- I==1
 
+   return shifter_operand, shifter_carry_out
 end
 
 
 
 
-function set_flags(N, Z, C, V)
+function set_flags(R, N, Z, C, V)
    local b_cpsr = bit.tobits(R['CPSR'])
    if N then b_cpsr[31] = N end
    if Z then b_cpsr[30] = Z end
@@ -226,11 +233,11 @@ local function vflag_by_sub(n1, n2)
    return s1~=s2 and s1~=s3
 end
 
-local function decode_inst(inst, cpsr)
+local function decode_inst(inst, cpsr, R)
    -- A3.4.1 Instruction encoding
-   local op, S, Rn, Rd = subv(inst, 24, 21), inst[20], subv(inst, 19, 16), subv(inst, 15, 12)
+   local op, S, Rn, Rd = bit.sub_tonum(inst, 24, 21), inst[20], bit.sub_tonum(inst, 19, 16), bit.sub_tonum(inst, 15, 12)
    -- A5.1 Addressing Mode 1 - Data-processing operands
-   local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
+   local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr, R)
 
    return op, S, Rn, Rd, shifter_operand, shifter_carry_out   
 end
@@ -238,20 +245,20 @@ end
 local function restore_cpsr(inst)
       local cpu_mode = subv(inst, 4, 0)
       if cpu_mode ~= 0x10 and cpu_mode ~= 0x1F then -- ~= usr and ~= sys
-	 R.set_cpsr(R.get_spsr(cpu_mode))
+	 R:set_cpsr(R:get_spsr(cpu_mode))
       else
 	 -- Error UNPREDICTABLE
       end
 end
 
 local function do_and(inst, cpsr)   
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- assume op == 0
 
    local vRd = bit.band(bit.tobits(vRn), bit.tobits(shifter_operand))
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
    
    if S == 1 and Rd == 15 then
       restore_cpsr(inst)
@@ -261,45 +268,45 @@ local function do_and(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = shifter_carry_out
       local V = nil
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end
 end
 
-local function do_xor(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_xor(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- EOR, Logical Exclusive OR
    local vRd = bit.bxor(bit.tobits(vRn), bit.tobits(shifter_operand))
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
 
 end
 
-local function do_sub(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_sub(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- SUB, Subtract
    local vRd = vRn - shifter_operand
-   R.set(Rd, vRd)		-- R[Rd] = vRd   
+   R:set(Rd, vRd)		-- R[Rd] = vRd   
 end
 
-local function do_rsb(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_rsb(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- RSB, Reverse Subtract
    local vRd = shifter_operand - vRn
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
 end
 
-local function do_add(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_add(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- ADD, Add
    local vRd = vRn + shifter_operand
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
    
    if S==1 and Rd==15 then
       restore_cpsr(inst)
@@ -309,18 +316,18 @@ local function do_add(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = cflag_by_add(vRn, shifter_operand) and 1 or 0
       local V = vflag_by_add(vRn, shifter_operand) and 1 or 0
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end
 end
 
-local function do_adc(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_adc(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- ADC, Add with Carry
    local cflag = cpsr[29]
    local vRd = vRn + shifter_operand + cflag
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
    
    if S == 1 and Rd == 15 then
       restore_cpsr(inst)
@@ -330,20 +337,20 @@ local function do_adc(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = cflag_by_add(vRn, shifter_operand+cflag) and 1 or 0
       local V = vflag_by_add(vRn, shifter_operand+cflag) and 1 or 0
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end
 end
 
 
-local function do_sbc(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_sbc(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- SBC, Subtract with Carry
    local cflag = cpsr[29]
    local not_cflag = cflag==0 and 1 or 0
    local vRd = vRn - shifter_operand - not_cflag
-   R.set(Rd, vRd)
+   R:set(Rd, vRd)
    
    if S == 1 and Rd == 15 then
       restore_cpsr(inst)
@@ -353,13 +360,13 @@ local function do_sbc(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = cflag_by_sub(vRn, shifter_operand - not_cflag) and 0 or 1
       local V = vflag_by_sub(vRn, shifter_operand - not_cflag) and 1 or 0
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end      
 end
 
 
-local function do_rsc(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_rsc(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    local cflag = cpsr[29]
@@ -367,7 +374,7 @@ local function do_rsc(inst, cpsr)
 
    -- RSC, Reverse Subtract with Carry
    local vRd = shifter_operand - vRn - not_cflag
-   R.set(Rd, vRd)
+   R:set(Rd, vRd)
 
    if S == 1 and Rd == 15 then
       restore_cpsr(inst)
@@ -377,12 +384,12 @@ local function do_rsc(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = cflag_by_sub(vRn, shifter_operand - not_cflag) and 0 or 1
       local V = vflag_by_sub(vRn, shifter_operand - not_cflag) and 1 or 0
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end         
 end
 
-local function do_tst(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_tst(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- TST, Test
@@ -391,24 +398,24 @@ local function do_tst(inst, cpsr)
    local Z = (bit.tonum(alu_out)==0) and 1 or 0
    local C = shifter_carry_out
    local V = nil
-   set_flags(N, Z, C, V)   
+   set_flags(R, N, Z, C, V)   
 end
 
-local function do_teq(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_teq(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- TEQ, Test Equivalence
-   local alu_out = bit.bxor(Rn, shifter_operand)
+   local alu_out = bit.bxor(bit.tobits(vRn), bit.tobits(shifter_operand))
    local N = alu_out[31]
    local Z = (bit.tonum(alu_out)==0) and 1 or 0
    local C = shifter_carry_out
    local V = nil
-   set_flags(N, Z, C, V)   
+   set_flags(R, N, Z, C, V)   
 end
 
-local function do_cmp(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_cmp(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- CMP, Compare
@@ -417,11 +424,11 @@ local function do_cmp(inst, cpsr)
    local Z = (alu_out==0) and 1 or 0
    local C = cflag_by_sub(vRn, shifter_operand)
    local V = vflag_by_sub(vRn, shifter_operand)
-   set_flags(N, Z, C, V)   
+   set_flags(R, N, Z, C, V)   
 end
 
-local function do_cmn(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_cmn(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- CMN, Compare Negated
@@ -430,16 +437,16 @@ local function do_cmn(inst, cpsr)
    local Z = (alu_out==0) and 1 or 0
    local C = cflag_by_add(vRn, shifter_operand)
    local V = vflag_by_add(vRn, shifter_operand)
-   set_flags(N, Z, C, V)   
+   set_flags(R, N, Z, C, V)   
 end
 
-local function do_orr(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_orr(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- ORR, Logical (inclusive) OR
    local vRd = bit.bor(bit.tobits(vRn), bit.tobits(shifter_operand))
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
    
    if S == 1 and Rd == 15 then
       restore_cpsr(inst)
@@ -449,16 +456,16 @@ local function do_orr(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = shifter_carry_out
       local V = nil
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end
 end
 
-local function do_mov(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_mov(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
 
    -- MOV, Move
    local vRd = shifter_operand
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
 
    if S == 1 and Rd == 15 then
       restore_cpsr(inst)
@@ -468,17 +475,17 @@ local function do_mov(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = shifter_carry_out
       local V = nil
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end
 end
 
-local function do_bic(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_bic(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
    local vRn = R[Rn]
 
    -- BIC, Bit Clear
    local vRd = bit.band(bit.tobits(vRn), bit.bnot(bit.tobits(shifter_operand)))
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
 
    if S == 1 and Rd == 15 then
       restore_cpsr(inst)
@@ -488,17 +495,17 @@ local function do_bic(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = shifter_carry_out
       local V = nil
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end
 
 end
 
-local function do_mvn(inst, cpsr)
-   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr)
+local function do_mvn(inst, cpsr, R)
+   local op, S, Rn, Rd, shifter_operand, shifter_carry_out = decode_inst(inst, cpsr, R)
 
    -- MVN, Move Not
    local vRd = bit.bnot(bit.tobits(shifter_operand))
-   R.set(Rd, vRd)		-- R[Rd] = vRd
+   R:set(Rd, vRd)		-- R[Rd] = vRd
 
    if S == 1 and Rd == 15 then
       restore_cpsr(inst)
@@ -508,7 +515,7 @@ local function do_mvn(inst, cpsr)
       local Z = (vRd==0) and 1 or 0
       local C = shifter_carry_out
       local V = nil
-      set_flags(N, Z, C, V)
+      set_flags(R, N, Z, C, V)
    end
 end
 
@@ -534,14 +541,24 @@ local ftable_data_processing = {
 
 -- inst: table of bits of instruction
 -- cpsr: table of bits of CPSR
-function data_processing_inst(inst, cpsr)
+function data_processing_inst(inst, R)
 
+   local cpsr = bit.tobits(R:get('CPSR'))
+   local op = bit.sub_tonum(inst, 24, 21)
 
-   -- A3.4.1 Instruction encoding
-   local op, S, Rn, Rd = subv(inst, 24, 21), inst[20], subv(inst, 19, 16), subv(inst, 15, 12)
-   local vRn, vRd = R[Rn], R[Rd]
-   -- A5.1 Addressing Mode 1 - Data-processing operands
-   local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr)
+   -- -- A3.4.1 Instruction encoding
+   -- local op, S, Rn, Rd = bit.sub_tonum(inst, 24, 21), inst[20], bit.sub_tonum(inst, 19, 16), bit.sub_tonum(inst, 15, 12)
+   -- local vRn, vRd = R[Rn], R[Rd]
+   -- -- A5.1 Addressing Mode 1 - Data-processing operands
+   -- local shifter_operand, shifter_carry_out = get_shifter_operand(inst, cpsr, R)
 
-   ftable_data_processing[op](inst, cpsr)
+   ftable_data_processing[op](inst, cpsr, R)
 end
+
+-- FIXME we should not have such 3 redundant functions
+function do_dp_imm_shift(inst, dcache, R)
+   data_processing_inst(inst, R)
+end
+do_dp_reg_shift = do_dp_imm_shift
+do_dp_imm = do_dp_imm_shift
+

@@ -109,6 +109,12 @@ local function sub(t, m, n)
 end
 
 local function concate(t1, t2)
+   if t1 == nil then
+      return t2 
+   elseif t2 == nil then
+      return t1
+   end
+   
    if t1.size + t2.size > 32 then return nil end
 
    local t3 = {}
@@ -217,7 +223,7 @@ local function bor(t1, t2)
 end
 
 
-local function bxor(t1, t2)
+local function bxor(t1, t2)   
    if t1.size<0 or t2.size<0 then return nil end
 
    if t1.size < t2.size then
@@ -351,6 +357,7 @@ end
 bit = {
    tobits = tobits,
    tonum = tonum,
+   sub_tonum = sub_tonum,
    tostr = tostr,
    band = band,
    bor = bor,
