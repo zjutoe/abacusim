@@ -207,10 +207,6 @@ function inst_is_ld_st_mult(inst)
    return inst[27]==1 and inst[26]==0 and inst[25]==0
 end
 
-function inst_is_ld_st_mult(inst)
-   return inst[27]==1 and inst[26]==0 and inst[25]==0
-end
-
 function inst_is_b_bl(inst)
    return inst[27]==1 and inst[26]==0 and inst[25]==1
 end
@@ -245,7 +241,6 @@ local inst_type_checker = {
    inst_is_media,
    inst_is_arch_undef,
    inst_is_ld_st_mult,
-   inst_is_ld_st_mult,
    inst_is_b_bl,
    inst_is_cop_ld_st_double_reg_trans,
    inst_is_cop_dp,
@@ -265,7 +260,6 @@ local inst_type_name = {
    "ld_st_reg_offset",
    "media",
    "arch_undef",
-   "ld_st_mult",
    "ld_st_mult",
    "b_bl",
    "cop_ld_st_double_reg_trans",
