@@ -1,6 +1,10 @@
-require 'utils'
+local math = math
+local print = print
+local pairs = pairs
 
-icache = {
+module(...)
+
+local cache = {
    0xe52db004, 	-- push	{fp}		; (str fp, [sp, #-4]!)
    0xe28db000, 	-- add	fp, sp, #0
    0xe24dd00c, 	-- sub	sp, sp, #12
@@ -26,18 +30,27 @@ icache = {
    0xe12fff1e, 	-- bx	lr
 }
 
-function icache.rd(self, addr)
-   if self[math.floor(addr / 4) + 1] == nil then print ('icache miss') end
+function init()
+   local c = {}
+   for k, v in pairs(cache) do
+      c[k] = v
+   end
+   return c
+end
+
+function cache.rd(self, addr)
+   -- if self[math.floor(addr / 4) + 1] == nil then print ('icache miss') end
    return self[math.floor(addr / 4) + 1]
 end
 
-function icache.dump_code(self)
-   for i, v in ipairs(self) do
-      if i % 4 == 1 then
-	 print('   7   6   5   4   3   2   1   0')
-      end
-      print(bit.tostr(bit.tobits(v)), string.format("%x:%x", v, (i-1)*4))
-   end
-end
+-- debug only
+-- function cache.dump_code(self)
+--    for i, v in ipairs(self) do
+--       if i % 4 == 1 then
+-- 	 print('   7   6   5   4   3   2   1   0')
+--       end
+--       print(bit.tostr(bit.tobits(v)), string.format("%x:%x", v, (i-1)*4))
+--    end
+-- end
 
 -- icache:dump_code()
