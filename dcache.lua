@@ -1,11 +1,22 @@
-dcache = {}
+local math = math
+local pairs = pairs
 
-function dcache.rd(self, addr)
-   if self[math.floor(addr / 4) + 1] == nil then print ('dcache miss') end
+module(...)
+
+local cache = {}
+
+function init()
+   local c = {}
+   for k, v in pairs(cache) do
+      c[k] = v
+   end
+   return c
+end
+
+function cache.rd(self, addr)
    return self[math.floor(addr / 4) + 1]
 end
 
-function dcache.wr(self, addr, v)
+function cache.wr(self, addr, v)
    self[math.floor(addr / 4) + 1] = v
 end
-

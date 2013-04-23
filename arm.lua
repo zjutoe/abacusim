@@ -352,5 +352,6 @@ local function loop(inst_cache, data_cache, reg_file)
 end
 
 local ic = icache.init()
+local dc = dcache.init()
 
-loop(ic, dcache, R)
+loop(ic, dc, R)

@@ -1,5 +1,4 @@
 local math = math
-local print = print
 local pairs = pairs
 
 module(...)
