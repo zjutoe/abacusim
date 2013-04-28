@@ -1,6 +1,6 @@
 --require 'luabit/bit'
 
-require 'utils'
+require 'bit'
 
 -- function tobits(v)
 --    -- TODO assert(v>=0)

@@ -13,10 +13,11 @@ function init()
    return c
 end
 
+-- NOTE data cache starts from address 0
 function cache.rd(self, addr)
-   return self[math.floor(addr / 4) + 1]
+   return self[math.floor(addr / 4)]
 end
 
 function cache.wr(self, addr, v)
-   self[math.floor(addr / 4) + 1] = v
+   self[math.floor(addr / 4)] = v
 end

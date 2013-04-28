@@ -1,6 +1,6 @@
 -- I'm trying to comply with the ARM V5 Architecture Spec, which is DDI_01001
 
-require 'utils'
+require 'bit'
 require 'icache'
 require 'dcache'
 
