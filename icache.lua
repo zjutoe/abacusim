@@ -29,7 +29,16 @@ local cache = {
    0xe12fff1e,		-- bx	lr
 }
 
-function init()
+function init(preset)
+   if preset then
+      if #preset > 0 then
+	 for k, v in pairs(cache) do
+	    cache[k] = nil
+      end
+      for k, v in pairs(preset) do
+	 cache[k] = v
+      end
+   end
    local c = {}
    for k, v in pairs(cache) do
       c[k] = v

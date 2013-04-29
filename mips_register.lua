@@ -20,7 +20,10 @@ function init()
       R[i] = 0
    end
 
-   R['PC']
+   R['PC'] = 0
+   R['OVERFLOW'] = 0
+   R['LO'] = 0
+   R['HI'] = 0
 
    return R
 end
