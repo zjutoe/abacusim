@@ -92,6 +92,26 @@ local function sub_tonum(t, i, j)
    return n
 end
 
+local function sub_tonum_se(t, i, j)
+   if i<j or i>31 or j<0 then
+      return nil
+   end
+
+   local n = 0
+   if t[i] == 1 then
+      for k=i, j, -1 do
+	 n = n + n + 1 - t[k]	-- ~t[k], i.e. (t[k]==1 and 0 or 1)
+      end
+      n = -(n + 1)
+   else
+      for k=i, j, -1 do
+	 n = n + n + t[k]
+      end
+   end
+
+   return n
+end
+
 
 local function sub(t, m, n)
    if m<n or m>31 or n<0 then return nil end
@@ -358,6 +378,7 @@ bit = {
    tobits = tobits,
    tonum = tonum,
    sub_tonum = sub_tonum,
+   sub_tonum_se = sub_tonum_se,
    tostr = tostr,
    band = band,
    bor = bor,
