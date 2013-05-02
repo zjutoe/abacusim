@@ -1,5 +1,9 @@
 local math = math
 local pairs = pairs
+local ipairs = ipairs
+local print = print
+local type = type
+local string = string
 
 module(...)
 
@@ -32,8 +36,9 @@ local cache = {
 function init(preset)
    if preset then
       if #preset > 0 then
-	 for k, v in pairs(cache) do
+	 for k, v in ipairs(cache) do
 	    cache[k] = nil
+	 end
       end
       for k, v in pairs(preset) do
 	 cache[k] = v
@@ -63,3 +68,4 @@ end
 -- end
 
 -- icache:dump_code()
+
