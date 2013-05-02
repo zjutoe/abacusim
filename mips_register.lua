@@ -31,6 +31,9 @@ end
 
 function _R.set(self, n, v)
    if n<0 or n>self.MAX then return end
+   if v > 0xFFFFFFFF or v < -0xFFFFFFFF then
+      v = math.floor(v % 0x100000000)
+   end
 
    if v < 0 then
       -- two's complement representation

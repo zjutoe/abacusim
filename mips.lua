@@ -2,7 +2,7 @@ require 'bit'
 require 'icache'
 require 'dcache'
 require 'mips_register'
-
+require 'dbg'
 
 local function decode(inst)
    local op = bit.sub_tonum(inst, 31, 26)
@@ -257,6 +257,7 @@ local function do_xor(inst, R)
 end
 
 
+
 local inst_handle_rtype = {
    [0x20] = do_add,	       -- add signed (with overflow) 
    [0x21] = do_addu,	       -- add unsigned 
@@ -289,44 +290,117 @@ local inst_handle_bz = {
    [0x10] = BZ_BLTZAL,	-- fmt=0x10, BLTZAL, BLTZ and link
 }
 
+
+local function decode_itype(inst)
+   local op = bit.sub_tonum(inst, 31, 26)
+   local rs = bit.sub_tonum(inst, 25, 21)
+   local rt = bit.sub_tonum(inst, 20, 16)
+   local imm = bit.sub_tonum_se(inst, 15, 0) -- sign extended
+
+   return op, rs, rt, imm
+end
+
+
+local function do_addi(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
+   local s = R:get(rs)
+   local t = s + imm
+   if s>0 and imm>0 and t > 0x80000000 or
+      s<0 and imm<0 and t < -0x80000000 then
+      exception("integer_overflow")
+   else
+      R:set(rt, t)
+   end
+end
+
+
+local function do_addiu(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
+   local s = R:get(rs)
+   local t = s + imm
+   R:set(rt, t)
+end
+
+
+
+local function do_andi(inst, dcache, R)
+   local op, rs, rt = decode_itype(inst)
+   local s = bit.tobits(R:get(rs))
+   local imm = bit.sub(inst, 15, 0)
+   local t = bit.tonum(bit.band(s, imm))
+   R:set(rt, t)
+end
+
+
+local function do_ori(inst, dcache, R)
+   local op, rs, rt = decode_itype(inst)
+   local s = bit.tobits(R:get(rs))
+   local imm = bit.sub(inst, 15, 0)
+   local t = bit.tonum(bit.bor(s, imm))
+   R:set(rt, t)
+end
+
+
+local function do_xori(inst, dcache, R)
+   local op, rs, rt = decode_itype(inst)
+   local s = bit.tobits(R:get(rs))
+   local imm = bit.sub(inst, 15, 0)
+   local t = bit.tonum(bit.bxor(s, imm))
+   R:set(rt, t)
+end
+
+
+local function do_slti(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
+   local s = R:get(rs)
+   local t = s < imm and 1 or 0
+   R:set(rt, t)
+end
+
+
+
+
+
 local inst_handle = {
-   [0x08]  = OP_ADDI,		-- add immediate with overflow  
-   [0x09]  = OP_ADDIU,		-- add immediate no overflow  
-   [0x0C]  = OP_ANDI,		-- bitwise and immediate  
-   [0x0D]  = OP_ORI,		-- bitwise or immediate  
-   [0x0E]  = OP_XORI,		-- bitwise exclusive or immediate  
+   [0x08]  = do_addi,		-- add immediate with overflow  
+   [0x09]  = do_addiu,		-- add immediate no overflow  
+   [0x0C]  = do_andi,		-- bitwise and immediate  
+   [0x0D]  = do_ori,		-- bitwise or immediate  
+   [0x0E]  = do_xori,		-- bitwise exclusive or immediate  
 
-   [0x0A]  = OP_SLTI,	      -- set on less than immediate  
-   [0x0B]  = OP_SLTIU,	      -- set on less than immediate unsigned  
+   [0x0A]  = do_slti,	      -- set on less than immediate  
+   [0x0B]  = do_SLTIU,	      -- set on less than immediate unsigned  FIXME WTF?
 
-   [0x04]  = OP_BEQ,		-- branch on equal  
+   [0x04]  = do_BEQ,		-- branch on equal  
 
-   [0x07]  = OP_BGTZ,		-- branch if $s > 0  
-   [0x06]  = OP_BLEZ,		-- branch if $s <= 0  
-   [0x05]  = OP_BNE,		-- branch if $s != $t  
-   [0x02]  = OP_J,		-- jump  
-   [0x03]  = OP_JAL,		-- jump and link  
+   [0x07]  = do_BGTZ,		-- branch if $s > 0  
+   [0x06]  = do_BLEZ,		-- branch if $s <= 0  
+   [0x05]  = do_BNE,		-- branch if $s != $t  
+   [0x02]  = do_J,		-- jump  
+   [0x03]  = do_JAL,		-- jump and link  
 
-   [0x20]  = OP_LB,		-- load byte  
-   [0x24]  = OP_LBU,		-- load byte unsigned  
-   [0x21]  = OP_LH,		--   
-   [0x25]  = OP_LHU,		--   
-   [0x0F]  = OP_LUI,		-- load upper immediate  
-   [0x23]  = OP_LW,		-- load word  
-   [0x31]  = OP_LWCL,		-- load word  
-   [0x28]  = OP_SB,		-- store byte  
-   [0x29]  = OP_SH,		--   
-   [0x2B]  = OP_SW,		-- store word  
-   [0x39]  = OP_SWCL,
+   [0x20]  = do_LB,		-- load byte  
+   [0x24]  = do_LBU,		-- load byte unsigned  
+   [0x21]  = do_LH,		--   
+   [0x25]  = do_LHU,		--   
+   [0x0F]  = do_LUI,		-- load upper immediate  
+   [0x23]  = do_LW,		-- load word  
+   [0x31]  = do_LWCL,		-- load word  
+   [0x28]  = do_SB,		-- store byte  
+   [0x29]  = do_SH,		--   
+   [0x2B]  = do_SW,		-- store word  
+   [0x39]  = do_SWCL,
 }
 
 
 local function loop(R, icache, dcache)
    while true do
       local pc = R:get(R.PC)
+      local inst_d = icache:rd(pc)
       local inst = bit.tobits(icache:rd(pc))
       if not inst then break end
       local op = bit.sub_tonum(inst, 31, 26)
+      LOGD(op)
       if op == 0 then
 	 -- R type
 	 local func = bit.sub_tonum(inst, 5, 0)
@@ -352,9 +426,9 @@ local init_icache = {
    0x812A0003,			-- lb   $t2, 3($t1)
 }
 
-local ic = icache:init(init_icache)
-local dc = dcache:init()
-local R = mips_register:init()
+local ic = icache.init(init_icache)
+local dc = dcache.init()
+local R = mips_register.init()
 
 loop(R, ic, dc)
 
