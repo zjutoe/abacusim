@@ -352,11 +352,77 @@ end
 
 local function do_slti(inst, dcache, R)
    local op, rs, rt, imm = decode_itype(inst)
-   local s = R:get(rs)
-   local t = s < imm and 1 or 0
+   local immu = bit.tonum(bit.tobits(imm))
+   local su   = bit.tonum(bit.tobits(R:get(rs)))
+   local t = su < immu and 1 or 0
    R:set(rt, t)
 end
 
+
+local function do_beq(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
+   local s = R:get(rs)
+   local t = R:get(rt)
+   if s == t then
+      R:set(R.PC, imm * 4)
+   end
+end
+
+
+local function do_bgtz(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
+   local s = R:get(rs)
+   if s > 0 then
+      R:set(R.PC, imm * 4)
+   end
+end
+
+
+local function do_blez(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
+   local s = R:get(rs)
+   if s <= 0 then
+      R:set(R.PC, imm * 4)
+   end
+end
+
+
+local function do_blez(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
+   local s = R:get(rs)
+   if s <= 0 then
+      R:set(R.PC, imm * 4)
+   end
+end
+
+
+local function do_bne(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
+   local s = R:get(rs)
+   local t = R:get(rt)
+   if s ~= t then
+      R:set(R.PC, imm * 4)
+   end
+end
+
+
+local function do_j(inst, dcache, R)
+   local instr_index = bit.sub(inst, 25, 0)
+   local pc_head = bit.sub(R:get(R.PC), 31, 28)
+   local target = bit.tonum(bit.concate(pc_head, instr_index)) * 4
+
+   R:set(R.PC, target)
+end
+
+
+local function do_jal(inst, dcache, R)
+   local instr_index = bit.sub(inst, 25, 0)
+   local pc_head = bit.sub(R:get(R.PC), 31, 28)
+   local target = bit.tonum(bit.concate(pc_head, instr_index)) * 4
+
+   R:set(31, R:get(R.PC)+8)	-- save return address
+   R:set(R.PC, target)
+end
 
 
 
@@ -369,15 +435,15 @@ local inst_handle = {
    [0x0E]  = do_xori,		-- bitwise exclusive or immediate  
 
    [0x0A]  = do_slti,	      -- set on less than immediate  
-   [0x0B]  = do_SLTIU,	      -- set on less than immediate unsigned  FIXME WTF?
+   [0x0B]  = do_sltiu,	      -- set on less than immediate unsigned  FIXME WTF?
 
-   [0x04]  = do_BEQ,		-- branch on equal  
+   [0x04]  = do_beq,		-- branch on equal  
 
-   [0x07]  = do_BGTZ,		-- branch if $s > 0  
-   [0x06]  = do_BLEZ,		-- branch if $s <= 0  
-   [0x05]  = do_BNE,		-- branch if $s != $t  
-   [0x02]  = do_J,		-- jump  
-   [0x03]  = do_JAL,		-- jump and link  
+   [0x07]  = do_bgtz,		-- branch if $s > 0  
+   [0x06]  = do_blez,		-- branch if $s <= 0  
+   [0x05]  = do_bne,		-- branch if $s != $t  
+   [0x02]  = do_j,		-- jump  
+   [0x03]  = do_jal,		-- jump and link  
 
    [0x20]  = do_LB,		-- load byte  
    [0x24]  = do_LBU,		-- load byte unsigned  
