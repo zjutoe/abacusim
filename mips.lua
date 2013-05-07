@@ -424,6 +424,17 @@ local function do_jal(inst, dcache, R)
    R:set(R.PC, target)
 end
 
+local function do_lb(inst, dcache, R)
+   local op, base, rt, offset = decode_itype(inst)
+   local vbase = R:get(base)
+   local vaddr = offset + R:get(base)
+   -- TODO address translation from virtual addr to physical addr
+   local vword = dcache:rd(vaddr)
+   -- TODO distinguish big endian and littlen endian
+   local off = (vaddr % 4) * 8
+   local vbyte = bit.sub_tonum_se(bit.tobits(vword), off+7, off)
+end
+
 
 
 
@@ -445,7 +456,7 @@ local inst_handle = {
    [0x02]  = do_j,		-- jump  
    [0x03]  = do_jal,		-- jump and link  
 
-   [0x20]  = do_LB,		-- load byte  
+   [0x20]  = do_lb,		-- load byte  
    [0x24]  = do_LBU,		-- load byte unsigned  
    [0x21]  = do_LH,		--   
    [0x25]  = do_LHU,		--   
