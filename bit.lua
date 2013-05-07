@@ -72,7 +72,7 @@ end
 
 local function tonum(t)
    local v = 0
-   for i=t.size-1, 0 do
+   for i=t.size-1, 0, -1 do
       v = v + v + t[i]
    end
    return v
