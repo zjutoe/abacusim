@@ -430,10 +430,97 @@ local function do_lb(inst, dcache, R)
    local vaddr = offset + R:get(base)
    -- TODO address translation from virtual addr to physical addr
    local vword = dcache:rd(vaddr)
-   -- TODO distinguish big endian and littlen endian
+   -- TODO distinguish big endian and littlen endian, now assuming little endian
    local off = (vaddr % 4) * 8
    local vbyte = bit.sub_tonum_se(bit.tobits(vword), off+7, off)
+   
+   R:set(rt, vbyte)
 end
+
+
+local function do_lbu(inst, dcache, R)
+   local op, base, rt, offset = decode_itype(inst)
+   local vbase = R:get(base)
+   local vaddr = offset + R:get(base)
+   -- TODO address translation from virtual addr to physical addr
+   local vword = dcache:rd(vaddr)
+   -- TODO distinguish big endian and littlen endian, now assuming little endian
+   local off = (vaddr % 4) * 8
+   local vbyte = bit.sub_tonum(bit.tobits(vword), off+7, off)
+
+   R:set(rt, vbyte)
+end
+
+
+local function do_lh(inst, dcache, R)
+   local op, base, rt, offset = decode_itype(inst)
+   local vbase = R:get(base)
+   local vaddr = offset + R:get(base)
+   if vaddr % 2 ~= 0 then
+      exception("address_error")
+   end
+   -- TODO address translation from virtual addr to physical addr
+   local vword = dcache:rd(vaddr)
+   -- TODO distinguish big endian and littlen endian, now assuming little endian
+   local off = (vaddr % 2) * 8
+   local vhalfw = bit.sub_tonum_se(bit.tobits(vword), off+15, off)
+
+   R:set(rt, vhalfw)
+end
+
+
+local function do_lhu(inst, dcache, R)
+   local op, base, rt, offset = decode_itype(inst)
+   local vbase = R:get(base)
+   local vaddr = offset + R:get(base)
+   if vaddr % 2 ~= 0 then
+      exception("address_error")
+   end
+   -- TODO address translation from virtual addr to physical addr
+   local vword = dcache:rd(vaddr)
+   -- TODO distinguish big endian and littlen endian, now assuming little endian
+   local off = (vaddr % 2) * 8
+   local vhalfw = bit.sub_tonum(bit.tobits(vword), off+15, off)
+
+   R:set(rt, vhalfw)
+end
+
+
+local function do_lui(inst, dcache, R)
+   --local op, base, rt, imm = decode_itype(inst)
+   local rt = bit.sub_tonum(inst, 20, 26)
+   local imm = bit.sll(bit.sub(inst, 15, 0), 16)
+   R:set(rt, imm)
+end
+
+
+local function do_lw(inst, dcache, R)
+   local op, base, rt, offset = decode_itype(inst)
+   local vbase = R:get(base)
+   local vaddr = offset + R:get(base)
+   if vaddr % 4 ~= 0 then
+      exception("address_error")
+   end
+   -- TODO address translation from virtual addr to physical addr
+   local vword = dcache:rd(vaddr)
+
+   R:set(rt, vword)
+end
+
+
+local function do_sb(inst, dcache, R)
+   local op, base, rt, offset = decode_itype(inst)
+   local vbase = R:get(base)
+   local vaddr = offset + R:get(base)
+   -- TODO address translation from virtual addr to physical addr
+   local vword = dcache:rd(vaddr)
+   -- TODO distinguish big endian and littlen endian, now assuming little endian
+   local off = (vaddr % 4) * 8
+   local vbyte = bit.sub_tonum_se(bit.tobits(vword), off+7, off)
+   
+   R:set(rt, vbyte)
+end
+
 
 
 
@@ -457,12 +544,12 @@ local inst_handle = {
    [0x03]  = do_jal,		-- jump and link  
 
    [0x20]  = do_lb,		-- load byte  
-   [0x24]  = do_LBU,		-- load byte unsigned  
-   [0x21]  = do_LH,		--   
-   [0x25]  = do_LHU,		--   
-   [0x0F]  = do_LUI,		-- load upper immediate  
-   [0x23]  = do_LW,		-- load word  
-   [0x31]  = do_LWCL,		-- load word  
+   [0x24]  = do_lbu,		-- load byte unsigned  
+   [0x21]  = do_lh,		--   
+   [0x25]  = do_lhu,		--   
+   [0x0F]  = do_lui,		-- load upper immediate  
+   [0x23]  = do_lw,		-- load word  
+   [0x31]  = do_LWC1,		-- load word  to Float Point TODO...
    [0x28]  = do_SB,		-- store byte  
    [0x29]  = do_SH,		--   
    [0x2B]  = do_SW,		-- store word  
