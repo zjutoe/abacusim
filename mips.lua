@@ -515,8 +515,8 @@ local function do_sb(inst, dcache, R)
    -- TODO address translation from virtual addr to physical addr
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
-   local off = (vaddr % 4) * 8
-   local vbyte = bit.sub_tonum_se(bit.tobits(vword), off+7, off)
+   local bytesel = (vaddr % 4) * 8
+   local vbyte = bit.sub_tonum_se(bit.tobits(vword), bytesel+7, bytesel)
    
    R:set(rt, vbyte)
 end
