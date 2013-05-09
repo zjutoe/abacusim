@@ -462,7 +462,7 @@ local function do_lh(inst, dcache, R)
    -- TODO address translation from virtual addr to physical addr
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
-   local off = (vaddr % 2) * 8
+   local off = (vaddr % 2) * 16
    local vhalfw = bit.sub_tonum_se(bit.tobits(vword), off+15, off)
 
    R:set(rt, vhalfw)
@@ -479,7 +479,7 @@ local function do_lhu(inst, dcache, R)
    -- TODO address translation from virtual addr to physical addr
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
-   local off = (vaddr % 2) * 8
+   local off = (vaddr % 2) * 16
    local vhalfw = bit.sub_tonum(bit.tobits(vword), off+15, off)
 
    R:set(rt, vhalfw)
@@ -516,13 +516,49 @@ local function do_sb(inst, dcache, R)
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
    local bytesel = (vaddr % 4) * 8
-   local vbyte = bit.sub_tonum_se(bit.tobits(vword), bytesel+7, bytesel)
+   local byte_bits = bit.sub(bit.tobits(R:get(rt)), bytesel+7, bytesel)
+   local word_bits = bit.tobits(vword)
+   local new_word = bit.concate(bit.concate(
+				   bit.sub(word_bits, 31, byetsel+8), 
+				   byte_bits), 
+				bit.sub(word_bits, bytesel-1, 0))
    
-   R:set(rt, vbyte)
+   dcache:wr(vaddr, bit.tonum(new_word))
 end
 
 
+local function do_sh(inst, dcache, R)
+   local op, base, rt, offset = decode_itype(inst)
+   local vbase = R:get(base)
+   local vaddr = offset + R:get(base)
+   if vaddr % 2 ~= 0 then 
+      exception("address_error")
+   end
+   -- TODO address translation from virtual addr to physical addr
+   local vword = dcache:rd(vaddr)
+   -- TODO distinguish big endian and littlen endian, now assuming little endian
+   local bytesel = (vaddr % 2) * 16
+   local byte_bits = bit.sub(bit.tobits(R:get(rt)), bytesel+15, bytesel)
+   local word_bits = bit.tobits(vword)
+   local new_word = bit.concate(bit.concate(
+				   bit.sub(word_bits, 31, byetsel+16), 
+				   byte_bits), 
+				bit.sub(word_bits, bytesel-1, 0))
+   
+   dcache:wr(vaddr, bit.tonum(new_word))
+end
 
+
+local function do_sw(inst, dcache, R)
+   local op, base, rt, offset = decode_itype(inst)
+   local vbase = R:get(base)
+   local vaddr = offset + R:get(base)
+   if vaddr % 4 ~= 0 then 
+      exception("address_error")
+   end
+   
+   dcache:wr(vaddr, R:get(rt))
+end
 
 
 local inst_handle = {
@@ -549,11 +585,11 @@ local inst_handle = {
    [0x25]  = do_lhu,		--   
    [0x0F]  = do_lui,		-- load upper immediate  
    [0x23]  = do_lw,		-- load word  
-   [0x31]  = do_LWC1,		-- load word  to Float Point TODO...
-   [0x28]  = do_SB,		-- store byte  
-   [0x29]  = do_SH,		--   
-   [0x2B]  = do_SW,		-- store word  
-   [0x39]  = do_SWCL,
+   [0x31]  = do_LWC1,		-- load word  to Float Point TODO ...
+   [0x28]  = do_sb,		-- store byte  
+   [0x29]  = do_sh,		--   
+   [0x2B]  = do_sw,		-- store word  
+   [0x39]  = do_SWC1,		-- store word with Float Point TODO ...
 }
 
 
