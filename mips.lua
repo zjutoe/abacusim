@@ -283,6 +283,16 @@ local inst_handle_rtype = {
    [0x0C] = do_syscall, -- system call FIXME system call is not R-type in theory?
 }
 
+local function do_bgez(inst, R)
+   local offset = bit.sub_tonum_se(inst, 15, 0) * 4
+   local rs = bit.sub_tonum(inst, 25, 21)
+   if R:get(rs) >= 0 then
+      local pc = R:get(R.PC) + 4 + offset
+      R:set(R.PC, pc)
+      return true			-- notify the outer loop that a branch occurs
+   end
+end
+
 local inst_handle_bz = {
    [0x01] = BZ_BGEZ,	-- fmt=0x01, BGEZ, branch on >= 0
    [0x11] = BZ_BGEZAL,	-- fmt=0x11, BGEZAL, BGEZ and link
@@ -593,30 +603,46 @@ local inst_handle = {
 }
 
 
+local function exec_inst(R, inst, icache, dcache)
+   local op = bit.sub_tonum(inst, 31, 26)
+   LOGD(op)
+   local branch_taken = false
+   if op == 0 then
+      -- R type
+      local func = bit.sub_tonum(inst, 5, 0)
+      local h = inst_handle_rtype[func]
+      branch_taken = h(inst, R)
+   elseif op == 1 then
+      -- BZ
+      local fmt = bit.sub_tonum(inst, 20, 16)
+      local h = inst_handle_bz[fmt]
+      branch_taken = h(inst, R)
+   else
+      local h = inst_handle[op]
+      branch_taken = h(inst, R, icache, dcache)
+   end
+
+   return branch_taken
+
+end
+
 local function loop(R, icache, dcache)
    while true do
       local pc = R:get(R.PC)
-      local inst_d = icache:rd(pc)
+      --local inst_d = icache:rd(pc)
       local inst = bit.tobits(icache:rd(pc))
       if not inst then break end
-      local op = bit.sub_tonum(inst, 31, 26)
-      LOGD(op)
-      if op == 0 then
-	 -- R type
-	 local func = bit.sub_tonum(inst, 5, 0)
-	 local h = inst_handle_rtype[func]
-	 h(inst, R)
-      elseif op == 1 then
-	 -- BZ
-	 local fmt = bit.sub_tonum(inst, 20, 16)
-	 local h = inst_handle_bz[fmt]
-	 h(inst, R)
+
+      local branch_taken = exec_inst(R, inst, icache, dcache)
+
+      if not branch_taken then
+	 pc = pc + 4
+	 R:set(R.PC, pc)
       else
-	 local h = inst_handle[op]
-	 h(inst, R, icache, dcache)
+	 -- execute the instruction in the branch delay slot
+	 local inst = bit.tobits(icache:rd( pc + 4 ))
+	 exec_inst(R, inst, icache, dcache)
       end
-      pc = pc + 4
-      R:set(R.PC, pc)
    end
 end
 
