@@ -605,7 +605,7 @@ local inst_handle = {
 
 local function exec_inst(R, inst, icache, dcache)
    local op = bit.sub_tonum(inst, 31, 26)
-   LOGD(op)
+   LOGD('OP = ', op)
    local branch_taken = false
    if op == 0 then
       -- R type
@@ -619,7 +619,7 @@ local function exec_inst(R, inst, icache, dcache)
       branch_taken = h(inst, R)
    else
       local h = inst_handle[op]
-      branch_taken = h(inst, R, icache, dcache)
+      branch_taken = h(inst, dcache, R)
    end
 
    return branch_taken
@@ -628,18 +628,20 @@ end
 
 local function loop(R, icache, dcache)
    while true do
+      LOGD('---------------')
+      LOGD('PC =', R:get(R.PC))
       local pc = R:get(R.PC)
-      --local inst_d = icache:rd(pc)
       local inst = bit.tobits(icache:rd(pc))
       if not inst then break end
-
       local branch_taken = exec_inst(R, inst, icache, dcache)
+      LOGD(string.format("I = 0x%x", icache:rd(pc)), branch_taken and 'B' or '')
 
       if not branch_taken then
 	 pc = pc + 4
 	 R:set(R.PC, pc)
       else
 	 -- execute the instruction in the branch delay slot
+	 LOGD('PC =', R:get(R.PC))
 	 local inst = bit.tobits(icache:rd( pc + 4 ))
 	 exec_inst(R, inst, icache, dcache)
       end

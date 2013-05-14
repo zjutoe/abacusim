@@ -15,9 +15,9 @@ end
 
 -- NOTE data cache starts from address 0
 function cache.rd(self, addr)
-   return self[math.floor(addr / 4)]
+   return self[math.floor(addr / 4)] or 0 -- will never return nil
 end
 
 function cache.wr(self, addr, v)
-   self[math.floor(addr / 4)] = v
+   self[math.floor(addr / 4)] = v or 0 -- will never write nil
 end

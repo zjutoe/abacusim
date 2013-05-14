@@ -10,6 +10,7 @@ local _R = {
    HI = 35,
 }
 
+
 function init()
    local R = {}
    for k, v in pairs(_R) do
@@ -19,11 +20,6 @@ function init()
    for i=0, _R.MAX do
       R[i] = 0
    end
-
-   R['PC'] = 0
-   R['OVERFLOW'] = 0
-   R['LO'] = 0
-   R['HI'] = 0
 
    return R
 end

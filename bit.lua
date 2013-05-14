@@ -1,4 +1,6 @@
 local function tobits(v)
+   if not v then return nil end
+
    if v < 0 then 
       v = 0x100000000 + v
    end
