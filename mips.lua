@@ -1,17 +1,19 @@
-require 'bit'
+require 'tbit'
 require 'icache'
 require 'dcache'
 require 'mips_register'
 require 'dbg'
 
+local B  = tbit.init()
+
 local function decode(inst)
-   local op = bit.sub_tonum(inst, 31, 26)
-   local rs = bit.sub_tonum(inst, 25, 21)
-   local rt = bit.sub_tonum(inst, 20, 16)
-   local rd = bit.sub_tonum(inst, 15, 11)
-   local sa = bit.sub_tonum(inst, 10, 6)
-   local fun = bit.sub_tonum(inst, 5, 0)
-   local imm = bit.sub_tonum(inst, 15, 0)
+   local op = B.sub_tonum(inst, 31, 26)
+   local rs = B.sub_tonum(inst, 25, 21)
+   local rt = B.sub_tonum(inst, 20, 16)
+   local rd = B.sub_tonum(inst, 15, 11)
+   local sa = B.sub_tonum(inst, 10, 6)
+   local fun = B.sub_tonum(inst, 5, 0)
+   local imm = B.sub_tonum(inst, 15, 0)
 
    return op, rs, rt, rd, sa, fun, imm
 end
@@ -54,7 +56,7 @@ local function do_and(inst, R)
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
    local s, t = R:get(rs), R:get(rt)
 
-   local d = bit.tonum(bit.band(bit.tobits(s), bit.tobits(t)))
+   local d = B.tonum(B.band(B.tobits(s), B.tobits(t)))
    R:set(rd, d)
 end
 
@@ -145,8 +147,8 @@ end
 local function do_or(inst, R) 
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
    local s, t = R:get(rs), R:get(rt)
-   local s, t = bit.tobits(s), bit.tobits(t)
-   local d = bit.tonum(bit.bor(s, t))
+   local s, t = B.tobits(s), B.tobits(t)
+   local d = B.tonum(B.bor(s, t))
    R:set(rd, d)
 end
 
@@ -173,7 +175,7 @@ end
 local function do_sll(inst, R) 
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
    local s = R:get(rs)
-   local d = bit.sll(bit.tobits(s), sa)
+   local d = B.sll(B.tobits(s), sa)
    R:set(rd, d)
 end
 
@@ -183,7 +185,7 @@ local function do_sllv(inst, R)
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
    local s, t = R:get(rs), R:get(rt)
    local t = t % 0x20
-   local d = bit.sll(bit.tobits(s), t)
+   local d = B.sll(B.tobits(s), t)
    R:set(rd, d)
 end
 
@@ -192,7 +194,7 @@ end
 local function do_sra(inst, R) 
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
    local s = R:get(rs)
-   local d = bit.sra(bit.tobits(s), sa)
+   local d = B.sra(B.tobits(s), sa)
    R:set(rd, d)
 end
 
@@ -201,7 +203,7 @@ end
 local function do_srl(inst, R) 
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
    local s = R:get(rs)
-   local d = bit.srl(bit.tobits(s), sa)
+   local d = B.srl(B.tobits(s), sa)
    R:set(rd, d)
 end
 
@@ -211,7 +213,7 @@ local function do_srlv(inst, R)
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
    local s, t = R:get(rs), R:get(rt)
    local t = t % 0x20
-   local d = bit.srl(bit.tobits(s), t)
+   local d = B.srl(B.tobits(s), t)
    R:set(rd, d)
 end
 
@@ -251,8 +253,8 @@ end
 local function do_xor(inst, R) 
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
    local s, t = R:get(rs), R:get(rt)
-   local s, t = bit.tobits(s), bit.tobits(t)
-   local d = bit.tonum(bit.bxor(s, t))
+   local s, t = B.tobits(s), B.tobits(t)
+   local d = B.tonum(B.bxor(s, t))
    R:set(rd, d)
 end
 
@@ -284,8 +286,8 @@ local inst_handle_rtype = {
 }
 
 local function do_bgez(inst, R)
-   local offset = bit.sub_tonum_se(inst, 15, 0) * 4
-   local rs = bit.sub_tonum(inst, 25, 21)
+   local offset = B.sub_tonum_se(inst, 15, 0) * 4
+   local rs = B.sub_tonum(inst, 25, 21)
    if R:get(rs) >= 0 then
       local pc = R:get(R.PC) + 4 + offset
       R:set(R.PC, pc)
@@ -302,10 +304,10 @@ local inst_handle_bz = {
 
 
 local function decode_itype(inst)
-   local op = bit.sub_tonum(inst, 31, 26)
-   local rs = bit.sub_tonum(inst, 25, 21)
-   local rt = bit.sub_tonum(inst, 20, 16)
-   local imm = bit.sub_tonum_se(inst, 15, 0) -- sign extended
+   local op = B.sub_tonum(inst, 31, 26)
+   local rs = B.sub_tonum(inst, 25, 21)
+   local rt = B.sub_tonum(inst, 20, 16)
+   local imm = B.sub_tonum_se(inst, 15, 0) -- sign extended
 
    return op, rs, rt, imm
 end
@@ -335,35 +337,35 @@ end
 
 local function do_andi(inst, dcache, R)
    local op, rs, rt = decode_itype(inst)
-   local s = bit.tobits(R:get(rs))
-   local imm = bit.sub(inst, 15, 0)
-   local t = bit.tonum(bit.band(s, imm))
+   local s = B.tobits(R:get(rs))
+   local imm = B.sub(inst, 15, 0)
+   local t = B.tonum(B.band(s, imm))
    R:set(rt, t)
 end
 
 
 local function do_ori(inst, dcache, R)
    local op, rs, rt = decode_itype(inst)
-   local s = bit.tobits(R:get(rs))
-   local imm = bit.sub(inst, 15, 0)
-   local t = bit.tonum(bit.bor(s, imm))
+   local s = B.tobits(R:get(rs))
+   local imm = B.sub(inst, 15, 0)
+   local t = B.tonum(B.bor(s, imm))
    R:set(rt, t)
 end
 
 
 local function do_xori(inst, dcache, R)
    local op, rs, rt = decode_itype(inst)
-   local s = bit.tobits(R:get(rs))
-   local imm = bit.sub(inst, 15, 0)
-   local t = bit.tonum(bit.bxor(s, imm))
+   local s = B.tobits(R:get(rs))
+   local imm = B.sub(inst, 15, 0)
+   local t = B.tonum(B.bxor(s, imm))
    R:set(rt, t)
 end
 
 
 local function do_slti(inst, dcache, R)
    local op, rs, rt, imm = decode_itype(inst)
-   local immu = bit.tonum(bit.tobits(imm))
-   local su   = bit.tonum(bit.tobits(R:get(rs)))
+   local immu = B.tonum(B.tobits(imm))
+   local su   = B.tonum(B.tobits(R:get(rs)))
    local t = su < immu and 1 or 0
    R:set(rt, t)
 end
@@ -374,7 +376,8 @@ local function do_beq(inst, dcache, R)
    local s = R:get(rs)
    local t = R:get(rt)
    if s == t then
-      R:set(R.PC, imm * 4)
+      R:set(R.PC, R:get(R.PC) + imm * 4)
+      return true
    end
 end
 
@@ -383,7 +386,8 @@ local function do_bgtz(inst, dcache, R)
    local op, rs, rt, imm = decode_itype(inst)
    local s = R:get(rs)
    if s > 0 then
-      R:set(R.PC, imm * 4)
+      R:set(R.PC, R:get(R.PC) + imm * 4)
+      return true
    end
 end
 
@@ -392,7 +396,8 @@ local function do_blez(inst, dcache, R)
    local op, rs, rt, imm = decode_itype(inst)
    local s = R:get(rs)
    if s <= 0 then
-      R:set(R.PC, imm * 4)
+      R:set(R.PC, R:get(R.PC) + imm * 4)
+      return true
    end
 end
 
@@ -401,7 +406,8 @@ local function do_blez(inst, dcache, R)
    local op, rs, rt, imm = decode_itype(inst)
    local s = R:get(rs)
    if s <= 0 then
-      R:set(R.PC, imm * 4)
+      R:set(R.PC, R:get(R.PC) + imm * 4)
+      return true
    end
 end
 
@@ -411,27 +417,30 @@ local function do_bne(inst, dcache, R)
    local s = R:get(rs)
    local t = R:get(rt)
    if s ~= t then
-      R:set(R.PC, imm * 4)
+      R:set(R.PC, R:get(R.PC) + imm * 4)
+      return true
    end
 end
 
 
 local function do_j(inst, dcache, R)
-   local instr_index = bit.sub(inst, 25, 0)
-   local pc_head = bit.sub(R:get(R.PC), 31, 28)
-   local target = bit.tonum(bit.concate(pc_head, instr_index)) * 4
+   local instr_index = B.sub(inst, 25, 0)
+   local pc_head = B.sub(B.tobits(R:get(R.PC)), 31, 28)
+   local target = B.tonum(B.concate(pc_head, instr_index)) * 4
 
    R:set(R.PC, target)
+   return true
 end
 
 
 local function do_jal(inst, dcache, R)
-   local instr_index = bit.sub(inst, 25, 0)
-   local pc_head = bit.sub(R:get(R.PC), 31, 28)
-   local target = bit.tonum(bit.concate(pc_head, instr_index)) * 4
+   local instr_index = B.sub(inst, 25, 0)
+   local pc_head = B.sub(R:get(R.PC), 31, 28)
+   local target = B.tonum(B.concate(pc_head, instr_index)) * 4
 
    R:set(31, R:get(R.PC)+8)	-- save return address
    R:set(R.PC, target)
+   return true
 end
 
 local function do_lb(inst, dcache, R)
@@ -442,7 +451,7 @@ local function do_lb(inst, dcache, R)
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
    local off = (vaddr % 4) * 8
-   local vbyte = bit.sub_tonum_se(bit.tobits(vword), off+7, off)
+   local vbyte = B.sub_tonum_se(B.tobits(vword), off+7, off)
    
    R:set(rt, vbyte)
 end
@@ -456,7 +465,7 @@ local function do_lbu(inst, dcache, R)
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
    local off = (vaddr % 4) * 8
-   local vbyte = bit.sub_tonum(bit.tobits(vword), off+7, off)
+   local vbyte = B.sub_tonum(B.tobits(vword), off+7, off)
 
    R:set(rt, vbyte)
 end
@@ -473,7 +482,7 @@ local function do_lh(inst, dcache, R)
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
    local off = (vaddr % 2) * 16
-   local vhalfw = bit.sub_tonum_se(bit.tobits(vword), off+15, off)
+   local vhalfw = B.sub_tonum_se(B.tobits(vword), off+15, off)
 
    R:set(rt, vhalfw)
 end
@@ -490,7 +499,7 @@ local function do_lhu(inst, dcache, R)
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
    local off = (vaddr % 2) * 16
-   local vhalfw = bit.sub_tonum(bit.tobits(vword), off+15, off)
+   local vhalfw = B.sub_tonum(B.tobits(vword), off+15, off)
 
    R:set(rt, vhalfw)
 end
@@ -498,8 +507,8 @@ end
 
 local function do_lui(inst, dcache, R)
    --local op, base, rt, imm = decode_itype(inst)
-   local rt = bit.sub_tonum(inst, 20, 26)
-   local imm = bit.sll(bit.sub(inst, 15, 0), 16)
+   local rt = B.sub_tonum(inst, 20, 26)
+   local imm = B.sll(B.sub(inst, 15, 0), 16)
    R:set(rt, imm)
 end
 
@@ -526,14 +535,14 @@ local function do_sb(inst, dcache, R)
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
    local bytesel = (vaddr % 4) * 8
-   local byte_bits = bit.sub(bit.tobits(R:get(rt)), bytesel+7, bytesel)
-   local word_bits = bit.tobits(vword)
-   local new_word = bit.concate(bit.concate(
-				   bit.sub(word_bits, 31, byetsel+8), 
+   local byte_bits = B.sub(B.tobits(R:get(rt)), bytesel+7, bytesel)
+   local word_bits = B.tobits(vword)
+   local new_word = B.concate(B.concate(
+				   B.sub(word_bits, 31, byetsel+8), 
 				   byte_bits), 
-				bit.sub(word_bits, bytesel-1, 0))
+				B.sub(word_bits, bytesel-1, 0))
    
-   dcache:wr(vaddr, bit.tonum(new_word))
+   dcache:wr(vaddr, B.tonum(new_word))
 end
 
 
@@ -548,14 +557,14 @@ local function do_sh(inst, dcache, R)
    local vword = dcache:rd(vaddr)
    -- TODO distinguish big endian and littlen endian, now assuming little endian
    local bytesel = (vaddr % 2) * 16
-   local byte_bits = bit.sub(bit.tobits(R:get(rt)), bytesel+15, bytesel)
-   local word_bits = bit.tobits(vword)
-   local new_word = bit.concate(bit.concate(
-				   bit.sub(word_bits, 31, byetsel+16), 
+   local byte_bits = B.sub(B.tobits(R:get(rt)), bytesel+15, bytesel)
+   local word_bits = B.tobits(vword)
+   local new_word = B.concate(B.concate(
+				   B.sub(word_bits, 31, byetsel+16), 
 				   byte_bits), 
-				bit.sub(word_bits, bytesel-1, 0))
+				B.sub(word_bits, bytesel-1, 0))
    
-   dcache:wr(vaddr, bit.tonum(new_word))
+   dcache:wr(vaddr, B.tonum(new_word))
 end
 
 
@@ -604,17 +613,17 @@ local inst_handle = {
 
 
 local function exec_inst(R, inst, icache, dcache)
-   local op = bit.sub_tonum(inst, 31, 26)
+   local op = B.sub_tonum(inst, 31, 26)
    LOGD('OP = ', op)
    local branch_taken = false
    if op == 0 then
       -- R type
-      local func = bit.sub_tonum(inst, 5, 0)
+      local func = B.sub_tonum(inst, 5, 0)
       local h = inst_handle_rtype[func]
       branch_taken = h(inst, R)
    elseif op == 1 then
       -- BZ
-      local fmt = bit.sub_tonum(inst, 20, 16)
+      local fmt = B.sub_tonum(inst, 20, 16)
       local h = inst_handle_bz[fmt]
       branch_taken = h(inst, R)
    else
@@ -626,12 +635,15 @@ local function exec_inst(R, inst, icache, dcache)
 
 end
 
+local MAX_RUN = 120000
+
 local function loop(R, icache, dcache)
+   local run_cnt = 0
    while true do
       LOGD('---------------')
       LOGD('PC =', R:get(R.PC))
       local pc = R:get(R.PC)
-      local inst = bit.tobits(icache:rd(pc))
+      local inst = B.tobits(icache:rd(pc))
       if not inst then break end
       local branch_taken = exec_inst(R, inst, icache, dcache)
       LOGD(string.format("I = 0x%x", icache:rd(pc)), branch_taken and 'B' or '')
@@ -642,9 +654,12 @@ local function loop(R, icache, dcache)
       else
 	 -- execute the instruction in the branch delay slot
 	 LOGD('PC =', R:get(R.PC))
-	 local inst = bit.tobits(icache:rd( pc + 4 ))
+	 local inst = B.tobits(icache:rd( pc + 4 ))
 	 exec_inst(R, inst, icache, dcache)
       end
+
+      if run_cnt > MAX_RUN then break end
+      run_cnt = run_cnt + 1
    end
 end
 
@@ -652,11 +667,19 @@ end
 local init_icache = {
    [0] = 0x20090002,		-- addi $t1, $zero, 2
    0x812A0003,			-- lb   $t2, 3($t1)
+   --0x1925FFF8,			-- blez $t1, -8
+   0x08000000,			-- j 0
+   0x812A0003,			-- lb   $t2, 3($t1)
 }
 
 local ic = icache.init(init_icache)
 local dc = dcache.init()
-local R = mips_register.init()
+local R  = mips_register.init()
+
+
+local x = os.clock()
 
 loop(R, ic, dc)
+
+print(string.format("elapsed time: %.2f\n", os.clock() - x))
 

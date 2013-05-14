@@ -1,4 +1,18 @@
-local function tobits(v)
+local pairs = pairs
+
+module(...)
+
+local _bit = {}
+
+function init()
+   local m = {}
+   for k, v in pairs(_bit) do
+      m[k] = v
+   end
+   return m
+end
+
+function _bit.tobits(v)
    if not v then return nil end
 
    if v < 0 then 
@@ -59,7 +73,7 @@ local function tobits(v)
 end
 
 
-local function tostr(t)
+function _bit.tostr(t)
    local s = {}
    for i=31, 0, -1 do
       if t[i] then 
@@ -72,7 +86,7 @@ local function tostr(t)
 end
 
 
-local function tonum(t)
+function _bit.tonum(t)
    local v = 0
    for i=t.size-1, 0, -1 do
       v = v + v + t[i]
@@ -81,7 +95,7 @@ local function tonum(t)
 end
 
 
-local function sub_tonum(t, i, j)
+function _bit.sub_tonum(t, i, j)
    if i<j or i>31 or j<0 then
       return nil
    end
@@ -94,7 +108,7 @@ local function sub_tonum(t, i, j)
    return n
 end
 
-local function sub_tonum_se(t, i, j)
+function _bit.sub_tonum_se(t, i, j)
    if i<j or i>31 or j<0 then
       return nil
    end
@@ -115,7 +129,7 @@ local function sub_tonum_se(t, i, j)
 end
 
 
-local function sub(t, m, n)
+function _bit.sub(t, m, n)
    if m<n or m>31 or n<0 then return nil end
 
    local t2 = {}
@@ -130,7 +144,7 @@ local function sub(t, m, n)
    return t2
 end
 
-local function concate(t1, t2)
+function _bit.concate(t1, t2)
    if t1 == nil then
       return t2 
    elseif t2 == nil then
@@ -154,7 +168,7 @@ local function concate(t1, t2)
    return t3
 end
 
-local function extend_logic(t)
+function _bit.extend_logic(t)
    local t2 = {}
    
    for i=0, t.size-1 do
@@ -169,26 +183,26 @@ local function extend_logic(t)
    return t2   
 end
 
-local function bits(v, i, j)
+function _bit.bits(v, i, j)
    local t = sub(tobits(v), i, j)
    return tonum(t)
 end
 
 
 
-local function rotate_left(t, n)
+function _bit.rotate_left(t, n)
    local t1 = sub(t, 31-n, 0)
    local t2 = sub(t, 31, 32-n)
    return concate(t1, t2)
 end
 
-local function rotate_right(t, n)
+function _bit.rotate_right(t, n)
    local t1 = sub(t, n-1, 0)
    local t2 = sub(t, 31, n)
    return concate(t1, t2)
 end
 
-local function shift_left_logic(t, n)
+function _bit.shift_left_logic(t, n)
    local t1 = sub(t, 31-n, 0)
    local t2 = {}
    for i=0, n-1 do
@@ -198,7 +212,7 @@ local function shift_left_logic(t, n)
    return concate(t1, t2)
 end
 
-local function shift_right_logic(t, n)
+function _bit.shift_right_logic(t, n)
    local t1 = sub(t, 31, n)
    local t2 = {}
    for i=0, n-1 do
@@ -208,7 +222,7 @@ local function shift_right_logic(t, n)
    return concate(t2, t1)
 end
 
-local function band(t1, t2)
+function _bit.band(t1, t2)
    if t1.size<0 or t2.size<0 then return nil end
 
    if t1.size < t2.size then
@@ -225,7 +239,7 @@ local function band(t1, t2)
 end
 
 
-local function bor(t1, t2)
+function _bit.bor(t1, t2)
    if t1.size<0 or t2.size<0 then return nil end
 
    if t1.size < t2.size then
@@ -245,7 +259,7 @@ local function bor(t1, t2)
 end
 
 
-local function bxor(t1, t2)   
+function _bit.bxor(t1, t2)   
    if t1.size<0 or t2.size<0 then return nil end
 
    if t1.size < t2.size then
@@ -265,7 +279,7 @@ local function bxor(t1, t2)
 end
 
 
-local function bnot(t)
+function _bit.bnot(t)
    if t.size<0 then return nil end
 
    local t2 = {}
@@ -284,7 +298,7 @@ end
 
 
 
-local function shift_right_arithmetic(t, n)
+function _bit.shift_right_arithmetic(t, n)
    local s = t[31]
    local t1 = sub(t, 31, n)
    local t2 = {}
@@ -295,11 +309,11 @@ local function shift_right_arithmetic(t, n)
    return concate(t2, t1)
 end
 
-local function bits_v(v, i, j)
+function _bit.bits_v(v, i, j)
    return sub_tonum(tobits(v), i, j)
 end
 
-local function rotate_left_v(v, n)
+function _bit.rotate_left_v(v, n)
    if n>32 or n<0 then return nil end
 
    local b = tobits(v)
@@ -318,7 +332,7 @@ local function rotate_left_v(v, n)
    return tonumber(t)
 end
 
-local function rotate_right_v(v, n)
+function _bit.rotate_right_v(v, n)
    if n>32 or n<0 then return nil end
 
    local b = tobits(v)
@@ -337,7 +351,7 @@ local function rotate_right_v(v, n)
    return tonumber(t)
 end
 
-local function logical_left_shift_v(v, n)
+function _bit.logical_left_shift_v(v, n)
    if n>32 or n<0 then return nil end
    
    local b = tobits(v)
@@ -356,7 +370,7 @@ local function logical_left_shift_v(v, n)
    return tonumber(t)
 end
 
-local function logical_right_shift_v(v, n)
+function _bit.logical_right_shift_v(v, n)
    if n>32 or n<0 then return nil end
 
    local b = tobits(v)
@@ -376,29 +390,29 @@ local function logical_right_shift_v(v, n)
 end
 
 
-bit = {
-   tobits = tobits,
-   tonum = tonum,
-   sub_tonum = sub_tonum,
-   sub_tonum_se = sub_tonum_se,
-   tostr = tostr,
-   band = band,
-   bor = bor,
-   bxor = bxor,
-   bnot = bnot,
-   bits = bits,
-   rol = rotate_left,
-   ror = rotate_right,
-   sll = shift_left_logic,
-   srl = shift_right_logic,
-   sra = shift_right_arithmetic,
-   sub = sub,
-   concate = concate,
-   extend_logic = extend_logic,
+-- bit = {
+--    tobits = tobits,
+--    tonum = tonum,
+--    sub_tonum = sub_tonum,
+--    sub_tonum_se = sub_tonum_se,
+--    tostr = tostr,
+--    band = band,
+--    bor = bor,
+--    bxor = bxor,
+--    bnot = bnot,
+--    bits = bits,
+--    rol = rotate_left,
+--    ror = rotate_right,
+--    sll = shift_left_logic,
+--    srl = shift_right_logic,
+--    sra = shift_right_arithmetic,
+--    sub = sub,
+--    concate = concate,
+--    extend_logic = extend_logic,
 
--- bits = bits_v,
--- rleft = rotate_left_v,
--- rright = rotate_right_v,
--- sll = logical_left_shift_v,
--- slr = logical_right_shift_v,
-}
+-- -- bits = bits_v,
+-- -- rleft = rotate_left_v,
+-- -- rright = rotate_right_v,
+-- -- sll = logical_left_shift_v,
+-- -- slr = logical_right_shift_v,
+-- }
