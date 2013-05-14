@@ -635,7 +635,7 @@ local function exec_inst(R, inst, icache, dcache)
 
 end
 
-local MAX_RUN = 120000
+local MAX_RUN = 200000
 
 local function loop(R, icache, dcache)
    local run_cnt = 0
@@ -667,7 +667,11 @@ end
 local init_icache = {
    [0] = 0x20090002,		-- addi $t1, $zero, 2
    0x812A0003,			-- lb   $t2, 3($t1)
-   --0x1925FFF8,			-- blez $t1, -8
+   0x812A0003,			-- lb   $t2, 3($t1)
+   0x00210820,			-- add $1, $1, $1
+   0x00210821, 			-- addu $1, $1, $1
+   0x00210824, 			-- and
+   0x00210018, 			-- mult
    0x08000000,			-- j 0
    0x812A0003,			-- lb   $t2, 3($t1)
 }
