@@ -676,10 +676,37 @@ local init_icache = {
    0x812A0003,			-- lb   $t2, 3($t1)
 }
 
-local ic = icache.init(init_icache)
+local loadelf = require 'luaelf/loadelf'
+local elf = loadelf.init()
+local mem = elf.load(arg[1])
+
+function mem:rd(addr)
+   if addr % 4 == 0 then
+      return self[addr] * 2^24 + self[addr+1] * 2^16 + self[addr+2] * 2^8 + self[addr+3]
+   end
+   return self[addr]
+end
+
+-- local ic = icache.init(mem)
+local ic = mem
 local dc = dcache.init()
 local R  = mips_register.init()
 
+local ffi = require 'ffi'
+
+function get_init_inst(mem)
+   for i, s in ipairs(mem.scns) do
+      if ffi.string(s.name) == ".text" then
+	 return tonumber(s.sh_addr)
+      end
+   end
+end
+
+local init_inst = get_init_inst(mem)
+if init_inst then
+   print(init_inst)
+   R:set(R.PC, init_inst)
+end
 
 local x = os.clock()
 
