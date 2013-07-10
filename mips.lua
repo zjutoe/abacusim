@@ -258,6 +258,15 @@ local function do_xor(inst, R)
    R:set(rd, d)
 end
 
+local function do_jalr(inst, R)
+   local rs = B.sub_tonum(inst, 25, 21)
+   local rd = B.sub_tonum(inst, 15, 11)
+   local tmp = R:get(rs)
+   R:set(rd, R:get(R.PC)+8)
+   R:set(R.PC, tmp)
+   
+   return true
+end
 
 
 local inst_handle_rtype = {
@@ -274,7 +283,7 @@ local inst_handle_rtype = {
    [0x2A] = do_slt,	       -- set on less than (signed) 
    [0x2B] = do_sltu,	       -- set on less than immediate (signed) 
    [0x00] = do_sll,	       -- shift left logical 
-   [0x00] = do_noop,	       -- no-op is SLL $0 $0 0 
+   [0x00] = do_noop,	       -- no-op is SLL $0 $0 0 FIXME
    [0x04] = do_sllv,	       -- shift left logical variable 
    [0x03] = do_sra,	       -- shift right arithmetic 
    [0x02] = do_srl,	       -- shift right logic  
@@ -282,6 +291,7 @@ local inst_handle_rtype = {
    [0x22] = do_sub,	       -- sub signed 
    [0x23] = do_subu,	       -- sub unsigned    
    [0x26] = do_xor,	       -- bitwise exclusive or 
+   [0x09] = do_jalr,	       -- jump and link register
    [0x0C] = do_syscall, -- system call FIXME system call is not R-type in theory?
 }
 
@@ -630,6 +640,7 @@ local function exec_inst(R, inst, icache, dcache)
    if op == 0 then
       -- R type
       local func = B.sub_tonum(inst, 5, 0)
+      LOGD("func = ", func)
       local h = inst_handle_rtype[func]
       branch_taken = h(inst, R)
    elseif op == 1 then
@@ -693,7 +704,7 @@ local loadelf = require 'luaelf/loadelf'
 local elf = loadelf.init()
 local mem = elf.load(arg[1])
 
-function mem:rd(addr)
+function mem.rd(self, addr)
    if addr % 4 == 0 then
       return self[addr] * 2^24 + self[addr+1] * 2^16 + self[addr+2] * 2^8 + self[addr+3]
    end
