@@ -518,8 +518,8 @@ end
 
 local function do_lui(inst, dcache, R)
    --local op, base, rt, imm = decode_itype(inst)
-   local rt = B.sub_tonum(inst, 20, 26)
-   local imm = B.sll(B.sub(inst, 15, 0), 16)
+   local rt = B.sub_tonum(inst, 20, 16)
+   local imm = B.tonum(B.sll(B.sub(inst, 15, 0), 16))
    R:set(rt, imm)
 end
 
