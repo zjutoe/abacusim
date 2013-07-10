@@ -9,6 +9,13 @@ function init()
    for k, v in pairs(_bit) do
       m[k] = v
    end
+   
+   m.rr = m.rotate_right
+   m.rl = m.rotate_left
+   m.sll = m.shift_left_logic
+   m.srl = m.shift_right_logic
+   m.sra = m.shift_right_arithmetic   
+
    return m
 end
 
@@ -184,36 +191,38 @@ function _bit.extend_logic(t)
 end
 
 function _bit.bits(v, i, j)
-   local t = sub(tobits(v), i, j)
+   local t = _bit.sub(tobits(v), i, j)
    return tonum(t)
 end
 
 
 
 function _bit.rotate_left(t, n)
+   local sub = _bit.sub
    local t1 = sub(t, 31-n, 0)
    local t2 = sub(t, 31, 32-n)
    return concate(t1, t2)
 end
 
 function _bit.rotate_right(t, n)
+   local sub = _bit.sub
    local t1 = sub(t, n-1, 0)
    local t2 = sub(t, 31, n)
    return concate(t1, t2)
 end
 
 function _bit.shift_left_logic(t, n)
-   local t1 = sub(t, 31-n, 0)
+   local t1 = _bit.sub(t, 31-n, 0)
    local t2 = {}
    for i=0, n-1 do
       t2[i] = 0
    end
    t2.size = n
-   return concate(t1, t2)
+   return _bit.concate(t1, t2)
 end
 
 function _bit.shift_right_logic(t, n)
-   local t1 = sub(t, 31, n)
+   local t1 = _bit.sub(t, 31, n)
    local t2 = {}
    for i=0, n-1 do
       t2[i] = 0
