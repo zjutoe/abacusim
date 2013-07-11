@@ -14,7 +14,7 @@ Usage
 2. run:
 
    <code>
-   $source env.sh
-   $luajit mips.lua mips-elf-bin
+   $source env.sh </br>
+   $luajit mips.lua mips-elf-bin <br>
    </code>
 
