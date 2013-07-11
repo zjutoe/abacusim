@@ -13,6 +13,8 @@ Usage
 
 2. run:
 
+   <code>
    $source env.sh
-   $luajit mips.lua <mips-elf-bin>
+   $luajit mips.lua mips-elf-bin
+   </code>
 
