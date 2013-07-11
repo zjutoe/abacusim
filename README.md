@@ -9,7 +9,9 @@ Usage
 1. pre-request: 
    * luajit: http://luajit.org/download.html
    * libelf: http://www.mr511.de/software/english.html
-   * luaelf: https://github.com/zjutoe/luaelf
+   * luaelf: https://github.com/zjutoe/luaelf 
+
+   (note:  need to put the luaelf folder under the top dir of this project)     	     
 
 2. run:
 
