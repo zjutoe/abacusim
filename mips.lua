@@ -741,7 +741,7 @@ function mem.wr(self, addr, v)
       local v1 = r2 % 0x100
       local r1 = (r2 - v1) / 0x100
       local v0 = r1 % 0x100
-      self[addr], self[add+1], self[add+2], self[add+3] = v0, v1, v2, v3
+      self[addr], self[addr+1], self[addr+2], self[addr+3] = v0, v1, v2, v3
    else
       return nil		-- FIXME raise an exception?
    end
