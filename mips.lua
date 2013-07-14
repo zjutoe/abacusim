@@ -715,15 +715,42 @@ local elf = loadelf.init()
 local mem = elf.load(arg[1])
 
 function mem.rd(self, addr)
+   local v0 = self[addr]   or 0
+   local v1 = self[addr+1] or 0
+   local v2 = self[addr+2] or 0
+   local v3 = self[addr+3] or 0
    if addr % 4 == 0 then
-      return self[addr] * 2^24 + self[addr+1] * 2^16 + self[addr+2] * 2^8 + self[addr+3]
+      -- TODO use ffi.bit to accelerate
+      return v0 * 2^24 + v1 * 2^16 + v2 * 2^8 + v3
+   else
+      return nil		-- FIXME raise an exception?
    end
-   return self[addr]
+end
+
+function mem.wr(self, addr, v)
+   local v0 = self[addr]   or 0
+   local v1 = self[addr+1] or 0
+   local v2 = self[addr+2] or 0
+   local v3 = self[addr+3] or 0
+   if addr % 4 == 0 then
+      -- TODO use ffi.bit to make it terse and fast
+      local v3 = v % 0x100
+      local r3 = (v - v3) / 0x100
+      local v2 = r3 % 0x100
+      local r2 = (r3 - v2) / 0x100
+      local v1 = r2 % 0x100
+      local r1 = (r2 - v1) / 0x100
+      local v0 = r1 % 0x100
+      self[addr], self[add+1], self[add+2], self[add+3] = v0, v1, v2, v3
+   else
+      return nil		-- FIXME raise an exception?
+   end
 end
 
 -- local ic = icache.init(mem)
+-- local dc = dcache.init()
 local ic = mem
-local dc = dcache.init()
+local dc = mem
 local R  = mips_register.init()
 
 local ffi = require 'ffi'
