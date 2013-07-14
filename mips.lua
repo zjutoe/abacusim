@@ -268,6 +268,15 @@ local function do_jalr(inst, R)
    return true
 end
 
+local function do_jr(inst, R)
+   local rs = B.sub_tonum(inst, 25, 21)
+   local tmp = R:get(rs)
+   LOGD(string.format("jr: %x", tmp))
+   R:set(R.PC, tmp)
+   
+   return true
+end
+
 
 local inst_handle_rtype = {
    [0x20] = do_add,	       -- add signed (with overflow) 
@@ -291,6 +300,7 @@ local inst_handle_rtype = {
    [0x22] = do_sub,	       -- sub signed 
    [0x23] = do_subu,	       -- sub unsigned    
    [0x26] = do_xor,	       -- bitwise exclusive or 
+   [0x08] = do_jr,	       -- jump register
    [0x09] = do_jalr,	       -- jump and link register
    [0x0C] = do_syscall, -- system call FIXME system call is not R-type in theory?
 }
