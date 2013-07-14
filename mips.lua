@@ -757,7 +757,7 @@ local ffi = require 'ffi'
 
 function get_init_inst(mem)
    for i, s in ipairs(mem.scns) do
-      if ffi.string(s.name) == ".text" then
+      if ffi.string(s.name) == "_init" then
 	 return tonumber(s.sh_addr)
       end
    end
