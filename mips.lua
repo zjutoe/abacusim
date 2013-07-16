@@ -20,8 +20,24 @@ end
 
 
 
-local function exception(error, R)
+local function exception(error, R, err)
+   print ("exception:")
    R:set(R.OVERFLOW, 1)
+   if error == "address_error" then
+      print(string.format("misaligned address 0x%x", err))
+   end
+
+   print("v0:", R:get(R.v0))
+   print("v1:", R:get(R.v1))
+   print("a0:", R:get(R.a0))
+   print("a1:", R:get(R.a1))
+   print("a2:", R:get(R.a2))
+   print("a3:", R:get(R.a3))   
+   print("gp:", R:get(R.gp))
+   print("sp:", R:get(R.sp))
+   print("fp:", R:get(R.sp))
+   print("ra:", R:get(R.sp))
+   
 end
 
 
@@ -395,6 +411,12 @@ end
 
 local function do_slti(inst, dcache, R)
    local op, rs, rt, imm = decode_itype(inst)
+   local t = R:get(rs) < imm and 1 or 0
+   R:set(rt, t)
+end
+
+local function do_sltiu(inst, dcache, R)
+   local op, rs, rt, imm = decode_itype(inst)
    local immu = B.tonum(B.tobits(imm))
    local su   = B.tonum(B.tobits(R:get(rs)))
    local t = su < immu and 1 or 0
@@ -549,7 +571,7 @@ local function do_lw(inst, dcache, R)
    local vbase = R:get(base)
    local vaddr = offset + R:get(base)
    if vaddr % 4 ~= 0 then
-      exception("address_error")
+      exception("address_error", R, vaddr)
    end
    -- TODO address translation from virtual addr to physical addr
    local vword = dcache:rd(vaddr)
@@ -756,8 +778,9 @@ local R  = mips_register.init()
 local ffi = require 'ffi'
 
 function get_init_inst(mem)
+   do return 0x400220 end
    for i, s in ipairs(mem.scns) do
-      if ffi.string(s.name) == "_init" then
+      if ffi.string(s.name) == "__start" then
 	 return tonumber(s.sh_addr)
       end
    end
