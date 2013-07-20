@@ -27,16 +27,20 @@ local function exception(error, R, err)
       print(string.format("misaligned address 0x%x", err))
    end
 
-   print(string.format("v0:0x%x", R:get(R.v0)))
-   print(string.format("v1:0x%x", R:get(R.v1)))
-   print(string.format("a0:0x%x", R:get(R.a0)))
-   print(string.format("a1:0x%x", R:get(R.a1)))
-   print(string.format("a2:0x%x", R:get(R.a2)))
-   print(string.format("a3:0x%x", R:get(R.a3)))
-   print(string.format("gp:0x%x", R:get(R.gp)))
-   print(string.format("sp:0x%x", R:get(R.sp)))
-   print(string.format("fp:0x%x", R:get(R.sp)))
-   print(string.format("ra:0x%x", R:get(R.sp)))
+   for i=0, R.MAX do
+      print(R:dump(i))
+   end
+
+   -- print(string.format("v0:0x%x", R:get(R.v0)))
+   -- print(string.format("v1:0x%x", R:get(R.v1)))
+   -- print(string.format("a0:0x%x", R:get(R.a0)))
+   -- print(string.format("a1:0x%x", R:get(R.a1)))
+   -- print(string.format("a2:0x%x", R:get(R.a2)))
+   -- print(string.format("a3:0x%x", R:get(R.a3)))
+   -- print(string.format("gp:0x%x", R:get(R.gp)))
+   -- print(string.format("sp:0x%x", R:get(R.sp)))
+   -- print(string.format("fp:0x%x", R:get(R.sp)))
+   -- print(string.format("ra:0x%x", R:get(R.sp)))
    
 end
 
@@ -55,7 +59,7 @@ local function do_add(inst, R)
       R:set(rd, d)
    end
 
-   LOGD(string.format("ADD $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("ADD s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
 
@@ -67,7 +71,8 @@ local function do_addu(inst, R)
    local d = s + t
    R:set(rd, d)
 
-   LOGD(string.format("ADDU $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("ADDU s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
+   --LOGD(string.format("ADDU $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
 end
 
 
@@ -79,7 +84,7 @@ local function do_and(inst, R)
    local d = B.tonum(B.band(B.tobits(s), B.tobits(t)))
    R:set(rd, d)
 
-   LOGD(string.format("AND $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("AND s:%s t:%s d:%s", R:dump(rs), R:dump(rs), R:dump(rs)))
 end
 
 
@@ -98,7 +103,7 @@ local function do_div(inst, R)
    R:set(R.HI, hi)
    R:set(R.LO, lo)
 
-   LOGD(string.format("DIV $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("DIV s:%s t:%s hi:%s lo:%s", R:dump(rs), R:dump(rt), R:dump(R.HI), R:dump(R.LO)))
 end
 
 
@@ -117,7 +122,7 @@ local function do_divu(inst, R)
    R:set(R.HI, hi)
    R:set(R.LO, lo)
 
-   LOGD(string.format("DIVU $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("DIVU s:%s t:%s hi:%s lo:%s", R:dump(rs), R:dump(rt), R:dump(R.HI), R:dump(R.LO)))
 end
 
 
@@ -128,7 +133,7 @@ local function do_mfhi(inst, R)
    local hi = R:get(R.HI)
    R:set(rd, hi)
 
-   LOGD(string.format("MFHI HI:%x $%d:%x", R:get(R.HI), rd, R:get(rd)))
+   LOGD(string.format("MFHI d:%s hi:%s", R:dump(rd), R:dump(R.HI)))
 end
 
 
@@ -139,7 +144,7 @@ local function do_mflo(inst, R)
    local lo = R:get(R.LO)
    R:set(rd, lo)
 
-   LOGD(string.format("MFLO LO:%x $%d:%x", R:get(R.LO), rd, R:get(rd)))
+   LOGD(string.format("MFLO d:%s lo:%s", R:dump(rd), R:dump(R.LO)))
 end
 
 
@@ -153,7 +158,7 @@ local function do_mult(inst, R)
    R:set(R.HI, hi)
    R:set(R.LO, lo)
 
-   LOGD(string.format("MULT $%d:%x $%d:%x HI:%x LO:%x", rs, R:get(rs), rt, R:get(rt), R.get(R.HI), R:get(R.LO)))
+   LOGD(string.format("MULT s:%s t:%s hi:%s lo:%s", R:dump(rs), R:dump(rt), R:dump(R.HI), R:dump(R.LO)))
 end
 
 
@@ -167,7 +172,7 @@ local function do_multu(inst, R)
    R:set(R.HI, hi)
    R:set(R.LO, lo)
 
-   LOGD(string.format("MULTU $%d:%x $%d:%x HI:%x LO:%x", rs, R:get(rs), rt, R:get(rt), R.get(R.HI), R:get(R.LO)))
+   LOGD(string.format("MULTU s:%s t:%s hi:%s lo:%s", R:dump(rs), R:dump(rt), R:dump(R.HI), R:dump(R.LO)))
 end
 
 
@@ -185,7 +190,7 @@ local function do_or(inst, R)
    local d = B.tonum(B.bor(s, t))
    R:set(rd, d)
 
-   LOGD(string.format("OR $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("OR s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
 
@@ -195,7 +200,7 @@ local function do_slt(inst, R)
    local d = s < t and 1 or 0
    R:set(rd, d)
 
-   LOGD(string.format("SLT $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("SLT s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
 
@@ -206,7 +211,7 @@ local function do_sltu(inst, R)
    local d = s < t and 1 or 0
    R:set(rd, d)
 
-   LOGD(string.format("SLTU $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("SLTU s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
 
@@ -217,7 +222,7 @@ local function do_sll(inst, R)
    local d = B.sll(B.tobits(s), sa)
    R:set(rd, d)
 
-   LOGD(string.format("SLL $%d:%x $%d:%x", rs, R:get(rs), rd, R:get(rd)))
+   LOGD(string.format("SLL s:%s imm:%x d:%s", R:dump(rs), imm, R:dump(rd)))
 end
 
 
@@ -229,7 +234,7 @@ local function do_sllv(inst, R)
    local d = B.sll(B.tobits(s), t)
    R:set(rd, d)
 
-   LOGD(string.format("SLLV $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("SLLV s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
 
@@ -240,7 +245,7 @@ local function do_sra(inst, R)
    local d = B.sra(B.tobits(s), sa)
    R:set(rd, d)
 
-   LOGD(string.format("SRA $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("SRA s:%s imm:%x d:%s", R:dump(rs), imm, R:dump(rd)))
 end
 
 
@@ -251,7 +256,7 @@ local function do_srl(inst, R)
    local d = B.srl(B.tobits(s), sa)
    R:set(rd, d)
 
-   LOGD(string.format("SRL $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("SRL s:%s imm:%x d:%s", R:dump(rs), imm, R:dump(rd)))
 end
 
 
@@ -263,7 +268,7 @@ local function do_srlv(inst, R)
    local d = B.srl(B.tobits(s), t)
    R:set(rd, d)
 
-   LOGD(string.format("SRLV $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("SRLV s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
 
@@ -279,7 +284,7 @@ local function do_sub(inst, R)
       exception("integer_overflow")
    else
       R:set(rd, d)
-      LOGD(string.format("SUB $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+      LOGD(string.format("SUB s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
    end
 end
 
@@ -292,7 +297,7 @@ local function do_subu(inst, R)
    local d = s - t
    R:set(rd, d)
 
-   LOGD(string.format("SUBU $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("SUBU s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
 
@@ -309,7 +314,7 @@ local function do_xor(inst, R)
    local d = B.tonum(B.bxor(s, t))
    R:set(rd, d)
 
-   LOGD(string.format("XOR $%d:%x $%d:%x $%d:%x", rs, R:get(rs), rt, R:get(rt), rd, R:get(rd)))
+   LOGD(string.format("XOR s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
 local function do_jalr(inst, R)
@@ -319,7 +324,7 @@ local function do_jalr(inst, R)
    R:set(rd, R:get(R.PC)+8)
    R:set(R.PC, tmp)
    
-   LOGD(string.format("JALR $%d:%x $%d:%x", rs, R:get(rs) , rd, R:get(rd)))
+   LOGD(string.format("JALR s:%s d:%s PC:%s", R:dump(rs), R:dump(rd), R:dump(R.PC)))
    return true
 end
 
@@ -329,7 +334,7 @@ local function do_jr(inst, R)
    LOGD(string.format("jr: %x", tmp))
    R:set(R.PC, tmp)
    
-   LOGD(string.format("JR $%d:%x $%d:%x", rs, R:get(rs)))
+   LOGD(string.format("JR s:%s PC:%s", R:dump(rs), R:dump(R.PC)))
    return true
 end
 
@@ -367,8 +372,10 @@ local function do_bgez(inst, R)
    if R:get(rs) >= 0 then
       local pc = R:get(R.PC) + 4 + offset
       R:set(R.PC, pc)
+      LOGD(string.format("BGEZ s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
       return true			-- notify the outer loop that a branch occurs
    end
+   LOGD(string.format("BGEZ s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
 end
 
 local function do_bgezal(inst, R)
@@ -378,8 +385,10 @@ local function do_bgezal(inst, R)
       local pc = R:get(R.PC) + 4 + offset
       R:set(R.PC, pc)
       R:set(R[31], pc+8)	-- TODO: give R[31] a name
+      LOGD(string.format("BGEZAL s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
       return true
-   end      
+   end
+   LOGD(string.format("BGEZAL s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
 end
 
 local inst_handle_bz = {
@@ -411,7 +420,7 @@ local function do_addi(inst, dcache, R)
       R:set(rt, t)
    end
 
-   LOGD(string.format("ADDI $%d:%x $%d:%x imm:%x", rs, R:get(rs), rt, R:get(rt), imm))
+   LOGD(string.format("ADDI s:%s t:%s imm:%x", R:dump(rs), R:dump(rt), imm))
 end
 
 
@@ -420,7 +429,8 @@ local function do_addiu(inst, dcache, R)
    local s = R:get(rs)
    local t = s + imm
    R:set(rt, t)
-   LOGD(string.format("ADDIU $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+
+   LOGD(string.format("ADDIU s:%s t:%s imm:%x", R:dump(rs), R:dump(rt), imm))
 end
 
 
@@ -432,7 +442,7 @@ local function do_andi(inst, dcache, R)
    local t = B.tonum(B.band(s, imm))
    R:set(rt, t)
 
-   LOGD(string.format("ANDI $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+   LOGD(string.format("ANDI s:%s t:%s imm:%x", R:dump(rs), R:dump(rt), imm))
 end
 
 
@@ -443,7 +453,7 @@ local function do_ori(inst, dcache, R)
    local t = B.tonum(B.bor(s, imm))
    R:set(rt, t)
 
-   LOGD(string.format("ORI $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+   LOGD(string.format("ORI s:%s t:%s imm:%x", R:dump(rs), R:dump(rt), imm))
 end
 
 
@@ -454,7 +464,7 @@ local function do_xori(inst, dcache, R)
    local t = B.tonum(B.bxor(s, imm))
    R:set(rt, t)
 
-   LOGD(string.format("XORI $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+   LOGD(string.format("XORI s:%s t:%s imm:%x", R:dump(rs), R:dump(rt), imm))
 end
 
 
@@ -463,7 +473,7 @@ local function do_slti(inst, dcache, R)
    local t = R:get(rs) < imm and 1 or 0
    R:set(rt, t)
 
-   LOGD(string.format("SLTI $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+   LOGD(string.format("SLTI s:%s t:%s imm:%x", R:dump(rs), R:dump(rt), imm))
 end
 
 local function do_sltiu(inst, dcache, R)
@@ -473,7 +483,7 @@ local function do_sltiu(inst, dcache, R)
    local t = su < immu and 1 or 0
    R:set(rt, t)
 
-   LOGD(string.format("SLTIU $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+   LOGD(string.format("SLTIU s:%s t:%s imm:%x", R:dump(rs), R:dump(rt), immu))
 end
 
 
@@ -483,9 +493,10 @@ local function do_beq(inst, dcache, R)
    local t = R:get(rt)
    if s == t then
       R:set(R.PC, R:get(R.PC) + imm * 4)
-      LOGD(string.format("BEQ $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+      LOGD(string.format("BEQ s:%s t:%s %s", R:dump(rs), R:dump(rt), R:dump(R.PC)))
       return true
    end
+   LOGD(string.format("BEQ s:%s t:%s %s", R:dump(rs), R:dump(rt), R:dump(R.PC)))
 end
 
 
@@ -494,9 +505,10 @@ local function do_bgtz(inst, dcache, R)
    local s = R:get(rs)
    if s > 0 then
       R:set(R.PC, R:get(R.PC) + imm * 4)
-      LOGD(string.format("BGTZ $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+      LOGD(string.format("BGTZ s:%s %s", R:dump(rs), R:dump(R.PC)))
       return true
    end
+   LOGD(string.format("BGTZ s:%s %s", R:dump(rs), R:dump(R.PC)))
 end
 
 
@@ -505,21 +517,22 @@ local function do_blez(inst, dcache, R)
    local s = R:get(rs)
    if s <= 0 then
       R:set(R.PC, R:get(R.PC) + imm * 4)
-      LOGD(string.format("BLEZ $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+      LOGD(string.format("BLEZ s:%s %s", R:dump(rs), R:dump(R.PC)))
       return true
    end
+   LOGD(string.format("BLEZ s:%s %s", R:dump(rs), R:dump(R.PC)))
 end
 
 
-local function do_blez(inst, dcache, R)
-   local op, rs, rt, imm = decode_itype(inst)
-   local s = R:get(rs)
-   if s <= 0 then
-      R:set(R.PC, R:get(R.PC) + imm * 4)
-      LOGD(string.format("BLEZ $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
-      return true
-   end
-end
+-- local function do_blez(inst, dcache, R)
+--    local op, rs, rt, imm = decode_itype(inst)
+--    local s = R:get(rs)
+--    if s <= 0 then
+--       R:set(R.PC, R:get(R.PC) + imm * 4)
+--       LOGD(string.format("BLEZ $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+--       return true
+--    end
+-- end
 
 
 local function do_bne(inst, dcache, R)
@@ -528,9 +541,10 @@ local function do_bne(inst, dcache, R)
    local t = R:get(rt)
    if s ~= t then
       R:set(R.PC, R:get(R.PC) + imm * 4)
-      LOGD(string.format("BNE $%d:%x $%d:%x t:%x imm:%x", rs, R:get(rs), rt, R:get(rt), t, imm))
+      LOGD(string.format("BEQ s:%s t:%s %s", R:dump(rs), R:dump(rt), R:dump(R.PC)))
       return true
    end
+   LOGD(string.format("BEQ s:%s t:%s %s", R:dump(rs), R:dump(rt), R:dump(R.PC)))
 end
 
 
@@ -541,7 +555,7 @@ local function do_j(inst, dcache, R)
 
    R:set(R.PC, target)
 
-   LOGD(string.format("J target:%x", target))
+   LOGD(string.format("J %s", R:dump(R.PC)))
    return true
 end
 
@@ -553,7 +567,7 @@ local function do_jal(inst, dcache, R)
 
    R:set(31, R:get(R.PC)+8)	-- save return address
    R:set(R.PC, target)
-   LOGD(string.format("JAL target:%x", target))
+   LOGD(string.format("JAL %s", R:dump(R.PC)))
    return true
 end
 
@@ -568,7 +582,7 @@ local function do_lb(inst, dcache, R)
    local vbyte = B.sub_tonum_se(B.tobits(vword), off+7, off)
    
    R:set(rt, vbyte)
-   LOGD(string.format("LB addr:%x v:%x", vaddr, vbyte))
+   LOGD(string.format("LB addr:%x t:%s", vaddr, R:dump(rt)))
 end
 
 
@@ -583,7 +597,7 @@ local function do_lbu(inst, dcache, R)
    local vbyte = B.sub_tonum(B.tobits(vword), off+7, off)
 
    R:set(rt, vbyte)
-   LOGD(string.format("LBU addr:%x v:%x", vaddr, vbyte))
+   LOGD(string.format("LBU addr:%x t:%s", vaddr, R:dump(rt)))
 end
 
 
@@ -601,8 +615,7 @@ local function do_lh(inst, dcache, R)
    local vhalfw = B.sub_tonum_se(B.tobits(vword), off+15, off)
 
    R:set(rt, vhalfw)
-
-   LOGD(string.format("LBU addr:%x v:%x", vaddr, vhalfw))
+   LOGD(string.format("LH addr:%x t:%s", vaddr, R:dump(rt)))
 end
 
 
@@ -620,7 +633,7 @@ local function do_lhu(inst, dcache, R)
    local vhalfw = B.sub_tonum(B.tobits(vword), off+15, off)
 
    R:set(rt, vhalfw)
-   LOGD(string.format("LBU addr:%x v:%x", vaddr, vhalfw))
+   LOGD(string.format("LHU addr:%x t:%s", vaddr, R:dump(rt)))
 end
 
 
@@ -629,7 +642,7 @@ local function do_lui(inst, dcache, R)
    local rt = B.sub_tonum(inst, 20, 16)
    local imm = B.tonum(B.sll(B.sub(inst, 15, 0), 16))
    R:set(rt, imm)
-   LOGD(string.format("lui rt:%x imm:%x", rt, R:get(rt), imm))
+   LOGD(string.format("LUI imm:%x t:%s", imm, R:dump(rt)))
 end
 
 
@@ -644,7 +657,7 @@ local function do_lw(inst, dcache, R)
    local vword = dcache:rd(vaddr)
 
    R:set(rt, vword)
-   LOGD(string.format("LW addr:%x v:%x", vaddr, vword))
+   LOGD(string.format("LW addr:%x t:%s", vaddr, R:dump(rt)))
 end
 
 
@@ -664,7 +677,7 @@ local function do_sb(inst, dcache, R)
 				B.sub(word_bits, bytesel-1, 0))
    
    dcache:wr(vaddr, B.tonum(new_word))
-   LOGD(string.format("SB addr:%x v:%x", vaddr, new_word))
+   LOGD(string.format("SB addr:%x t:%s", vaddr, R:dump(rt)))
 end
 
 
@@ -687,7 +700,7 @@ local function do_sh(inst, dcache, R)
 				B.sub(word_bits, bytesel-1, 0))
    
    dcache:wr(vaddr, B.tonum(new_word))
-   LOGD(string.format("SB addr:%x v:%x", vaddr, new_word))
+   LOGD(string.format("SH addr:%x t:%s", vaddr, R:dump(rt)))
 end
 
 
@@ -700,8 +713,7 @@ local function do_sw(inst, dcache, R)
    end
    
    dcache:wr(vaddr, R:get(rt))
-
-   LOGD(string.format("SW addr:%x v:%x", vaddr, R:get(rt)))
+   LOGD(string.format("SH addr:%x t:%s", vaddr, R:dump(rt)))
 end
 
 
@@ -739,12 +751,11 @@ local inst_handle = {
 
 local function exec_inst(R, inst, icache, dcache)
    local op = B.sub_tonum(inst, 31, 26)
-   LOGD('OP = ', op)
    local branch_taken = false
    if op == 0 then
       -- R type
       local func = B.sub_tonum(inst, 5, 0)
-      LOGD("func = ", func)
+      -- LOGD("func = ", func)
       local h = inst_handle_rtype[func]
       branch_taken = h(inst, R)
    elseif op == 1 then
@@ -768,16 +779,14 @@ local function loop(R, icache, dcache)
    local run_cnt = 0
    while true do
       LOGD('---------------')
-      LOGD(string.format('PC = %x', R:get(R.PC)))
       local pc = R:get(R.PC)
       local inst = B.tobits(icache:rd(pc))
       if not inst then break end
-      LOGD(string.format("I = %08x", icache:rd(pc)))
+      LOGD(string.format("%x : %08x", R:get(R.PC), icache:rd(pc)))
 
       local branch_taken = exec_inst(R, inst, icache, dcache)
 
       LOGD(branch_taken and 'B' or '')
-      LOGD(string.format("a0:0x%x", R:get(R.a0)))
 
       if not branch_taken then
 	 pc = pc + 4
@@ -789,7 +798,7 @@ local function loop(R, icache, dcache)
 	 exec_inst(R, inst, icache, dcache)
       end
 
-      if run_cnt > MAX_RUN then break end
+      -- if run_cnt > MAX_RUN then break end
       run_cnt = run_cnt + 1
    end
 end
