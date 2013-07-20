@@ -547,6 +547,29 @@ local function do_bne(inst, dcache, R)
    LOGD(string.format("BEQ s:%s t:%s %s", R:dump(rs), R:dump(rt), R:dump(R.PC)))
 end
 
+local function do_ins(inst, dcache, R)
+   local op, rs, rt, msb, lsb, fun, imm = decode(inst)
+   local s, t = R:get(rs), R:get(rt)
+   local bits2 = B.sub(B.tobits(s), msb-lsb, 0)
+   local bits = B.tobits(t)
+   local bits1 = B.sub(bits, 31, msb+1)
+   local bits3 = B.sub(bits, lsb-1, 0)
+   LOGD(string.format("INS s:%s t:%s msb:%x lsb:%x bits1:%x, bits2:%x, bits3:%x", 
+		      R:dump(rs),
+		      R:dump(rt),
+		      msb, lsb,
+		      B.tonum(bits1),
+		      B.tonum(bits2),
+		      B.tonum(bits3)))
+   -- local tmp = B.concate(bits1, bits2)
+   -- LOGD(B.tonum(tmp))
+   -- local tmp = B.concate(tmp, bits3)
+   -- LOGD(B.tonum(tmp))
+   -- local t1 = B.tonum(tmp)
+   local t1 = B.tonum( B.concate(B.concate(bits1, bits2), bits3) )
+
+   R:set(rt, t1)
+end
 
 local function do_j(inst, dcache, R)
    local instr_index = B.sub(inst, 25, 0)
@@ -562,7 +585,7 @@ end
 
 local function do_jal(inst, dcache, R)
    local instr_index = B.sub(inst, 25, 0)
-   local pc_head = B.sub(R:get(R.PC), 31, 28)
+   local pc_head = B.sub(B.tobits(R:get(R.PC)), 31, 28)
    local target = B.tonum(B.concate(pc_head, instr_index)) * 4
 
    R:set(31, R:get(R.PC)+8)	-- save return address
@@ -657,7 +680,8 @@ local function do_lw(inst, dcache, R)
    local vword = dcache:rd(vaddr)
 
    R:set(rt, vword)
-   LOGD(string.format("LW addr:%x t:%s", vaddr, R:dump(rt)))
+   LOGD(string.format("LW addr:%x t:%s base:%s offset:%x", vaddr, R:dump(rt), 
+		      R:dump(base), offset))
 end
 
 
@@ -732,6 +756,7 @@ local inst_handle = {
    [0x07]  = do_bgtz,		-- branch if $s > 0  
    [0x06]  = do_blez,		-- branch if $s <= 0  
    [0x05]  = do_bne,		-- branch if $s != $t  
+   [0x1F]  = do_ins,		-- Inset Bit Field
    [0x02]  = do_j,		-- jump  
    [0x03]  = do_jal,		-- jump and link  
 
@@ -862,17 +887,18 @@ local R  = mips_register.init()
 local ffi = require 'ffi'
 
 function get_init_inst(mem)
-   do return 0x400220 end
+   do return 0x4001a4 end
    for i, s in ipairs(mem.scns) do
-      if ffi.string(s.name) == "__start" then
+      if ffi.string(s.name) == "_init" then
 	 return tonumber(s.sh_addr)
       end
    end
 end
 
 local init_inst = get_init_inst(mem)
+
 if init_inst then
-   print(init_inst)
+   LOGD(string.format("init: %x", init_inst))
    R:set(R.PC, init_inst)
 end
 
