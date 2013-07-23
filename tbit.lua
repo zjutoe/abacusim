@@ -162,7 +162,7 @@ function _bit.concate(t1, t2)
 
    local t3 = {}
    local k = t1.size-1
-   for i=t1.size+t2.size-1, t1.size, -1 do
+   for i=t1.size+t2.size-1, t2.size, -1 do
       t3[i] = t1[k]
       k = k -1
    end
@@ -218,6 +218,7 @@ function _bit.shift_left_logic(t, n)
       t2[i] = 0
    end
    t2.size = n
+
    return _bit.concate(t1, t2)
 end
 
