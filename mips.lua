@@ -218,11 +218,11 @@ end
 
 local function do_sll(inst, R) 
    local op, rs, rt, rd, sa, fun, imm = decode(inst)
-   local s = R:get(rs)
-   local d = B.sll(B.tobits(s), sa)
+   local t = R:get(rt)
+   local d = B.tonum(B.sll(B.tobits(t), sa))
    R:set(rd, d)
 
-   LOGD(string.format("SLL s:%s imm:%x d:%s", R:dump(rs), imm, R:dump(rd)))
+   LOGD(string.format("SLL t:%s sa:%x d:%s", R:dump(rt), sa, R:dump(rd)))
 end
 
 
@@ -352,8 +352,7 @@ local inst_handle_rtype = {
    [0x25] = do_or,	       -- bitwise or 
    [0x2A] = do_slt,	       -- set on less than (signed) 
    [0x2B] = do_sltu,	       -- set on less than immediate (signed) 
-   [0x00] = do_sll,	       -- shift left logical 
-   [0x00] = do_noop,	       -- no-op is SLL $0 $0 0 FIXME
+   [0x00] = do_sll,	       -- shift left logical  -- [0x00] = do_noop, noop is "SLL $0 $0 0"
    [0x04] = do_sllv,	       -- shift left logical variable 
    [0x03] = do_sra,	       -- shift right arithmetic 
    [0x02] = do_srl,	       -- shift right logic  
@@ -886,20 +885,22 @@ local R  = mips_register.init()
 
 local ffi = require 'ffi'
 
-function get_init_inst(mem)
-   do return 0x4001a4 end
-   for i, s in ipairs(mem.scns) do
-      if ffi.string(s.name) == "_init" then
-	 return tonumber(s.sh_addr)
-      end
-   end
-end
+-- function get_init_inst(mem)
+--    do return 0x4001a4 end
+--    for i, s in ipairs(mem.scns) do
+--       if ffi.string(s.name) == "_init" then
+-- 	 return tonumber(s.sh_addr)
+--       end
+--    end
+-- end
 
-local init_inst = get_init_inst(mem)
+local init_inst = mem.e_entry
 
 if init_inst then
    LOGD(string.format("init: %x", init_inst))
    R:set(R.PC, init_inst)
+   R:set(R.sp, 0x40800298)
+   R:set(R.fp, 0x40800298)
 end
 
 local x = os.clock()
