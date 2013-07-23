@@ -176,11 +176,15 @@ local function do_multu(inst, R)
 end
 
 
+local function do_mul(inst, dcache, R) 
+   local op, rs, rt, rd, sa, fun, imm = decode(inst)
+   local s, t = R:get(rs), R:get(rt)
+   local d = s * t
+   local lo = d % 0x100000000
+   R:set(rd, lo)
 
-local function do_noop(inst, R) 
-   return nil
+   LOGD(string.format("MUL s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
-
 
 
 local function do_or(inst, R) 
@@ -770,6 +774,8 @@ local inst_handle = {
    [0x29]  = do_sh,		--   
    [0x2B]  = do_sw,		-- store word  
    [0x39]  = do_SWC1,		-- store word with Float Point TODO ...
+
+   [0x1c]  = do_mul,		-- Multiply word to GPR, NOTE: not MULT
 }
 
 
