@@ -1,4 +1,20 @@
+local pairs = pairs
 local ffi = require 'ffi'
+
+module(...)
+
+local _m = {}
+
+function init()
+   local m = {}
+   for k, v in pairs(_m) do
+      m[k] = v
+   end
+   
+   return m
+end
+
+
 
 ffi.cdef[[
 
@@ -8,9 +24,9 @@ ffi.cdef[[
 
 local sys = ffi.load('syscall')
 
-function sys_getegid()
+function _m.sys_getegid()
    return sys.do_getegid()
 end
 
-print(sys_getegid())
+-- print(sys_getegid())
 

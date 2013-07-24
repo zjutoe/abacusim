@@ -25,6 +25,8 @@ local function exception(error, R, err)
    R:set(R.OVERFLOW, 1)
    if error == "address_error" then
       print(string.format("misaligned address 0x%x", err))
+   elseif error == "syscall" then
+      print(string.format("syscall 0x%x not supported", err))
    end
 
    for i=0, R.MAX do
@@ -304,10 +306,20 @@ local function do_subu(inst, R)
    LOGD(string.format("SUBU s:%s t:%s d:%s", R:dump(rs), R:dump(rt), R:dump(rd)))
 end
 
-
+require "syscall"
+local syscall = syscall.init()
 
 local function do_syscall(inst, R) 
-   exception("syscall")
+   local id = R:get(R.v0)
+   local ret
+   if id == 4045 then		-- 0xfcd
+      ret = syscall.sys_getegid()
+   else
+      exception("syscall", R, id)
+   end
+
+   R:set(11, ret)		-- R[11] is the return value
+   LOGD(string.format("syscall id:0x%x ret:0x%x", id, ret))
 end
 
 
