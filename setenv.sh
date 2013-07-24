@@ -1,3 +1,3 @@
 #!/bin/bash
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/luaelf
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/luaelf:.
