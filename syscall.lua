@@ -28,5 +28,18 @@ function _m.sys_getegid()
    return sys.do_getegid()
 end
 
+function _m.do_syscall(R)
+   local code = R:get(R.v0)
+   local ret
+   if code == 4045 then		-- 0xfcd
+      ret = sys.do_getegid()
+   else
+      return -1			-- raise exception in the caller
+   end
+
+   R:set(11, ret)		-- R[11] is the return value
+   return 0
+end
+
 -- print(sys_getegid())
 

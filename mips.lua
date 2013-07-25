@@ -310,16 +310,11 @@ require "syscall"
 local syscall = syscall.init()
 
 local function do_syscall(inst, R) 
-   local id = R:get(R.v0)
-   local ret
-   if id == 4045 then		-- 0xfcd
-      ret = syscall.sys_getegid()
-   else
-      exception("syscall", R, id)
+   local res = syscall.do_syscall(R)
+   if res == -1 then 
+      exception("syscall")
    end
-
-   R:set(11, ret)		-- R[11] is the return value
-   LOGD(string.format("syscall id:0x%x ret:0x%x", id, ret))
+   LOGD(string.format("syscall id:0x%x", R:get(R.v0)))
 end
 
 
@@ -393,6 +388,19 @@ local function do_bgez(inst, R)
    LOGD(string.format("BGEZ s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
 end
 
+local function do_bltz(inst, R)
+   local offset = B.sub_tonum_se(inst, 15, 0) * 4
+   local rs = B.sub_tonum(inst, 25, 21)
+   if R:get(rs) < 0 then
+      local pc = R:get(R.PC) + 4 + offset
+      R:set(R.PC, pc)
+      LOGD(string.format("BLTZ s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
+      return true			-- notify the outer loop that a branch occurs
+   end
+   LOGD(string.format("BLTZ s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
+end
+
+
 local function do_bgezal(inst, R)
    local offset = B.sub_tonum_se(inst, 15, 0) * 4
    local rs = B.sub_tonum(inst, 25, 21)
@@ -406,10 +414,11 @@ local function do_bgezal(inst, R)
    LOGD(string.format("BGEZAL s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
 end
 
+
 local inst_handle_bz = {
    [0x01] = do_bgez,	-- fmt=0x01, BGEZ, branch on >= 0
    [0x11] = do_bgezal,	-- fmt=0x11, BGEZAL, BGEZ and link
-   [0x00] = BZ_BLTZ,	-- fmt=0x00, BLTZ, branch on < 0
+   [0x00] = do_bltz,	-- fmt=0x00, BLTZ, branch on < 0
    [0x10] = BZ_BLTZAL,	-- fmt=0x10, BLTZAL, BLTZ and link
 }
 
