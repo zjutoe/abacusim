@@ -380,8 +380,8 @@ local function do_bgez(inst, R)
    local offset = B.sub_tonum_se(inst, 15, 0) * 4
    local rs = B.sub_tonum(inst, 25, 21)
    if R:get(rs) >= 0 then
-      local pc = R:get(R.PC) + 4 + offset
-      R:set(R.PC, pc)
+      local pc = R:get(R.PC) 
+      R:set(R.PC, pc + offset)
       LOGD(string.format("BGEZ s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
       return true			-- notify the outer loop that a branch occurs
    end
@@ -392,8 +392,8 @@ local function do_bltz(inst, R)
    local offset = B.sub_tonum_se(inst, 15, 0) * 4
    local rs = B.sub_tonum(inst, 25, 21)
    if R:get(rs) < 0 then
-      local pc = R:get(R.PC) + 4 + offset
-      R:set(R.PC, pc)
+      local pc = R:get(R.PC)
+      R:set(R.PC, pc + offset)
       LOGD(string.format("BLTZ s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
       return true			-- notify the outer loop that a branch occurs
    end
@@ -401,13 +401,14 @@ local function do_bltz(inst, R)
 end
 
 
+-- this includes inst bal
 local function do_bgezal(inst, R)
    local offset = B.sub_tonum_se(inst, 15, 0) * 4
    local rs = B.sub_tonum(inst, 25, 21)
    if R:get(rs) >= 0 then
-      local pc = R:get(R.PC) + 4 + offset
-      R:set(R.PC, pc)
-      R:set(R[31], pc+8)	-- TODO: give R[31] a name
+      local pc = R:get(R.PC) 
+      R:set(R.PC, pc + offset)
+      R:set(R.ra, pc + 8)	-- TODO: give R[31] a name
       LOGD(string.format("BGEZAL s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
       return true
    end
@@ -416,6 +417,7 @@ end
 
 
 local inst_handle_bz = {
+   
    [0x01] = do_bgez,	-- fmt=0x01, BGEZ, branch on >= 0
    [0x11] = do_bgezal,	-- fmt=0x11, BGEZAL, BGEZ and link
    [0x00] = do_bltz,	-- fmt=0x00, BLTZ, branch on < 0
@@ -832,21 +834,25 @@ local function loop(R, icache, dcache)
       LOGD('---------------')
       local pc = R:get(R.PC)
       local inst = B.tobits(icache:rd(pc))
-      if not inst then break end
       LOGD(string.format("%x : %08x", R:get(R.PC), icache:rd(pc)))
 
+      if not inst then break end
+
+      local new_pc = pc + 4
+      R:set(R.PC, new_pc)
+
+      -- NOTE: inst may change PC
       local branch_taken = exec_inst(R, inst, icache, dcache)
 
-      LOGD(branch_taken and 'B' or '')
-
-      if not branch_taken then
-	 pc = pc + 4
-	 R:set(R.PC, pc)
-      else
+      if branch_taken then
+	 -- pc = pc + 4
+	 -- R:set(R.PC, pc)
+	 -- else
 	 -- execute the instruction in the branch delay slot
-	 LOGD(string.format('PC = %08x', R:get(R.PC)))
-	 local inst = B.tobits(icache:rd( pc + 4 ))
+	 LOGD(string.format('Delay PC = %08x', new_pc))
+	 local inst = B.tobits(icache:rd( new_pc ))
 	 exec_inst(R, inst, icache, dcache)
+	 run_cnt = run_cnt + 1
       end
 
       -- if run_cnt > MAX_RUN then break end
@@ -926,8 +932,8 @@ local init_inst = mem.e_entry
 if init_inst then
    LOGD(string.format("init: %x", init_inst))
    R:set(R.PC, init_inst)
-   R:set(R.sp, 0x40800298)
-   R:set(R.fp, 0x40800298)
+   R:set(R.sp, 0x408002a8)
+   R:set(R.fp, 0x408002a8)
 end
 
 local x = os.clock()
