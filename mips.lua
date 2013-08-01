@@ -407,8 +407,8 @@ local function do_bgezal(inst, R)
    local rs = B.sub_tonum(inst, 25, 21)
    if R:get(rs) >= 0 then
       local pc = R:get(R.PC) 
-      R:set(R.PC, pc + offset)
-      R:set(R.ra, pc + 8)	-- TODO: give R[31] a name
+      R:set(R.PC, pc + offset)	-- the current PC is now already "pc+4" pointing to the delay slot
+      R:set(R.ra, pc + 4)	-- will return to the inst after the delay slot
       LOGD(string.format("BGEZAL s:%s offset:%d PC:%s", R:dump(rs), offset, R:dump(R.PC)))
       return true
    end
@@ -840,18 +840,18 @@ local function loop(R, icache, dcache)
 
       local new_pc = pc + 4
       R:set(R.PC, new_pc)
-
       -- NOTE: inst may change PC
       local branch_taken = exec_inst(R, inst, icache, dcache)
 
+      R:info()
+
       if branch_taken then
-	 -- pc = pc + 4
-	 -- R:set(R.PC, pc)
-	 -- else
-	 -- execute the instruction in the branch delay slot
 	 LOGD(string.format('Delay PC = %08x', new_pc))
 	 local inst = B.tobits(icache:rd( new_pc ))
 	 exec_inst(R, inst, icache, dcache)
+
+	 -- R:info()
+
 	 run_cnt = run_cnt + 1
       end
 
@@ -933,7 +933,6 @@ if init_inst then
    LOGD(string.format("init: %x", init_inst))
    R:set(R.PC, init_inst)
    R:set(R.sp, 0x408002a8)
-   R:set(R.fp, 0x408002a8)
 end
 
 local x = os.clock()

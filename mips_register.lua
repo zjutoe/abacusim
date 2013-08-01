@@ -80,12 +80,12 @@ function _R.info(self)
 
    print("            sr       lo       hi      bad    cause       pc")
    print(string.format("      %08x %08x %08x %08x %08x %08x ", 
-		       self[24], self[34], self[35], self[27], self[28], self[32]))
+		       self[0], self[34], self[35], self[0], self[0], self[32]))
 
 
    print("           fsr      fir")
    print(string.format("      %08x %08x ", 
-		       self[24], self[25]))
+		       self[0], self[0]))
 
 end
 
