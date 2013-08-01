@@ -1,5 +1,6 @@
 local pairs = pairs
 local string = string
+local print = print
 
 module(...)
 
@@ -56,6 +57,36 @@ end
 
 function _R.dump(self, n)
    return string.format("%s:%x", self:regname(n), self:get(n))
+end
+
+function _R.info(self)
+   print("          zero       at       v0       v1       a0       a1       a2       a3")
+   print(string.format(" R0   %08x %08x %08x %08x %08x %08x %08x %08x ", 
+		       self[0], self[1], self[2], self[3], self[4], self[5], self[6], self[7]))
+
+   print("            t0       t1       t2       t3       t4       t5       t6       t7")
+   print(string.format(" R8   %08x %08x %08x %08x %08x %08x %08x %08x ", 
+		       self[8], self[9], self[10], self[11], self[12], self[13], self[14], self[15]))
+
+   print("            s0       s1       s2       s3       s4       s5       s6       s7")
+   print(string.format(" R16  %08x %08x %08x %08x %08x %08x %08x %08x ", 
+		       self[16], self[17], self[18], self[19], self[20], self[21], self[22], self[23]))
+
+
+   print("            t8       t9       k0       k1       gp       sp       s8       ra")
+   print(string.format(" R24  %08x %08x %08x %08x %08x %08x %08x %08x ", 
+		       self[24], self[25], self[26], self[27], self[28], self[29], self[30], self[31]))
+
+
+   print("            sr       lo       hi      bad    cause       pc")
+   print(string.format("      %08x %08x %08x %08x %08x %08x ", 
+		       self[24], self[34], self[35], self[27], self[28], self[32]))
+
+
+   print("           fsr      fir")
+   print(string.format("      %08x %08x ", 
+		       self[24], self[25]))
+
 end
 
 function init()
