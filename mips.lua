@@ -332,7 +332,7 @@ local function do_jalr(inst, R)
    local rs = B.sub_tonum(inst, 25, 21)
    local rd = B.sub_tonum(inst, 15, 11)
    local tmp = R:get(rs)
-   R:set(rd, R:get(R.PC)+8)
+   R:set(rd, R:get(R.PC)+4)
    R:set(R.PC, tmp)
    
    LOGD(string.format("JALR s:%s d:%s PC:%s", R:dump(rs), R:dump(rd), R:dump(R.PC)))
@@ -614,7 +614,7 @@ local function do_jal(inst, dcache, R)
    local pc_head = B.sub(B.tobits(R:get(R.PC)), 31, 28)
    local target = B.tonum(B.concate(pc_head, instr_index)) * 4
 
-   R:set(31, R:get(R.PC)+8)	-- save return address
+   R:set(31, R:get(R.PC) + 4)	-- save return address
    R:set(R.PC, target)
    LOGD(string.format("JAL %s", R:dump(R.PC)))
    return true
@@ -955,6 +955,11 @@ if init_inst then
    mem:wr(0x40800304, 0x40800fd6)
    mem:wr(0x40800308, 0x40800fe2)
    mem:wr(0x4080030c, 0x0)
+
+   -- FIXME 
+   mem:wr(0x40800310, 0x00000019)
+   mem:wr(0x40800314, 0x40800391)
+   mem:wr(0x40800318, 0x00000011)
    
 end
 
