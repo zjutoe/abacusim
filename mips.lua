@@ -834,24 +834,20 @@ local function loop(R, icache, dcache)
       LOGD('---------------')
       local pc = R:get(R.PC)
       local inst = B.tobits(icache:rd(pc))
-      LOGD(string.format("%x : %08x", R:get(R.PC), icache:rd(pc)))
+      LOGD(string.format("%x : 0x%08x", R:get(R.PC), icache:rd(pc)))
 
       if not inst then break end
 
+      R:info()
+
       local new_pc = pc + 4
       R:set(R.PC, new_pc)
-      -- NOTE: inst may change PC
       local branch_taken = exec_inst(R, inst, icache, dcache)
-
-      R:info()
 
       if branch_taken then
 	 LOGD(string.format('Delay PC = %08x', new_pc))
 	 local inst = B.tobits(icache:rd( new_pc ))
 	 exec_inst(R, inst, icache, dcache)
-
-	 -- R:info()
-
 	 run_cnt = run_cnt + 1
       end
 
