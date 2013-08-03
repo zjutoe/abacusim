@@ -823,7 +823,6 @@ local function exec_inst(R, inst, icache, dcache)
    end
 
    return branch_taken
-
 end
 
 local MAX_RUN = 200000
@@ -913,15 +912,6 @@ local dc = mem
 local R  = mips_register.init()
 
 local ffi = require 'ffi'
-
--- function get_init_inst(mem)
---    do return 0x4001a4 end
---    for i, s in ipairs(mem.scns) do
---       if ffi.string(s.name) == "_init" then
--- 	 return tonumber(s.sh_addr)
---       end
---    end
--- end
 
 local init_inst = mem.e_entry
 
