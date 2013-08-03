@@ -312,7 +312,7 @@ local syscall = syscall.init()
 local function do_syscall(inst, R) 
    local res = syscall.do_syscall(R)
    if res == -1 then 
-      exception("syscall")
+      exception("syscall", R)
    end
    LOGD(string.format("syscall id:0x%x", R:get(R.v0)))
 end
@@ -363,7 +363,8 @@ local inst_handle_rtype = {
    [0x25] = do_or,	       -- bitwise or 
    [0x2A] = do_slt,	       -- set on less than (signed) 
    [0x2B] = do_sltu,	       -- set on less than immediate (signed) 
-   [0x00] = do_sll,	       -- shift left logical  -- [0x00] = do_noop, noop is "SLL $0 $0 0"
+   [0x00] = do_sll,	       -- shift left logical
+   -- [0x00] = do_noop, noop is "SLL $0 $0 0"
    [0x04] = do_sllv,	       -- shift left logical variable 
    [0x03] = do_sra,	       -- shift right arithmetic 
    [0x02] = do_srl,	       -- shift right logic  
@@ -373,7 +374,8 @@ local inst_handle_rtype = {
    [0x26] = do_xor,	       -- bitwise exclusive or 
    [0x08] = do_jr,	       -- jump register
    [0x09] = do_jalr,	       -- jump and link register
-   [0x0C] = do_syscall, -- system call FIXME system call is not R-type in theory?
+   [0x0C] = do_syscall,	       -- system call
+   -- FIXME system call is not R-type in theory? 
 }
 
 local function do_bgez(inst, R)
