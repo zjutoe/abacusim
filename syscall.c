@@ -4935,6 +4935,11 @@ int get_osversion(void)
 
 static int open_self_maps(void *cpu_env, int fd)
 {
+
+#ifndef SUPPORT_OPEN_SELF_MAPS
+	return 0;
+#else  // SUPPORT_OPEN_SELF_MAPS
+
 #if defined(TARGET_ARM) || defined(TARGET_M68K) || defined(TARGET_UNICORE32)
     TaskState *ts = ((CPUArchState *)cpu_env)->opaque;
 #endif
@@ -4984,10 +4989,16 @@ static int open_self_maps(void *cpu_env, int fd)
 #endif
 
     return 0;
+
+#endif	// SUPPORT_OPEN_SELF_MAPS
 }
 
 static int open_self_stat(void *cpu_env, int fd)
 {
+#ifndef  SUPPORT_OPEN_SELF_MAPS
+	return 0;
+#else
+	
     TaskState *ts = ((CPUArchState *)cpu_env)->opaque;
     abi_ulong start_stack = ts->info->start_stack;
     int i;
@@ -5020,10 +5031,16 @@ static int open_self_stat(void *cpu_env, int fd)
     }
 
     return 0;
+
+#endif  // SUPPORT_OPEN_SELF_MAPS
 }
 
 static int open_self_auxv(void *cpu_env, int fd)
 {
+#ifndef  SUPPORT_OPEN_SELF_MAPS
+	return 0;
+#else  // SUPPORT_OPEN_SELF_MAPS
+	
     TaskState *ts = ((CPUArchState *)cpu_env)->opaque;
     abi_ulong auxv = ts->info->saved_auxv;
     abi_ulong len = ts->info->auxv_len;
@@ -5049,6 +5066,7 @@ static int open_self_auxv(void *cpu_env, int fd)
     }
 
     return 0;
+#endif	// SUPPORT_OPEN_SELF_MAPS
 }
 
 static int is_proc_myself(const char *filename, const char *entry)
@@ -5131,7 +5149,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
                     abi_long arg5, abi_long arg6, abi_long arg7,
                     abi_long arg8)
 {
-    CPUState *cpu = ENV_GET_CPU(cpu_env);
+	///CPUState *cpu = ENV_GET_CPU(cpu_env);
     abi_long ret;
     struct stat st;
     struct statfs stfs;
@@ -5140,52 +5158,52 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
 #ifdef DEBUG
     gemu_log("syscall %d", num);
 #endif
-    if(do_strace)
-        print_syscall(num, arg1, arg2, arg3, arg4, arg5, arg6);
+    ///if(do_strace)
+    ///print_syscall(num, arg1, arg2, arg3, arg4, arg5, arg6);
 
     switch(num) {
     case TARGET_NR_exit:
-        /* In old applications this may be used to implement _exit(2).
-           However in threaded applictions it is used for thread termination,
-           and _exit_group is used for application termination.
-           Do thread termination if we have more then one thread.  */
-        /* FIXME: This probably breaks if a signal arrives.  We should probably
-           be disabling signals.  */
-        if (first_cpu->next_cpu) {
-            TaskState *ts;
-            CPUState **lastp;
-            CPUState *p;
+//         /* In old applications this may be used to implement _exit(2).
+//            However in threaded applictions it is used for thread termination,
+//            and _exit_group is used for application termination.
+//            Do thread termination if we have more then one thread.  */
+//         /* FIXME: This probably breaks if a signal arrives.  We should probably
+//            be disabling signals.  */
+//         if (first_cpu->next_cpu) {
+//             TaskState *ts;
+//             CPUState **lastp;
+//             CPUState *p;
 
-            cpu_list_lock();
-            lastp = &first_cpu;
-            p = first_cpu;
-            while (p && p != cpu) {
-                lastp = &p->next_cpu;
-                p = p->next_cpu;
-            }
-            /* If we didn't find the CPU for this thread then something is
-               horribly wrong.  */
-            if (!p) {
-                abort();
-            }
-            /* Remove the CPU from the list.  */
-            *lastp = p->next_cpu;
-            cpu_list_unlock();
-            ts = ((CPUArchState *)cpu_env)->opaque;
-            if (ts->child_tidptr) {
-                put_user_u32(0, ts->child_tidptr);
-                sys_futex(g2h(ts->child_tidptr), FUTEX_WAKE, INT_MAX,
-                          NULL, NULL, 0);
-            }
-            thread_cpu = NULL;
-            object_unref(OBJECT(ENV_GET_CPU(cpu_env)));
-            g_free(ts);
-            pthread_exit(NULL);
-        }
-#ifdef TARGET_GPROF
-        _mcleanup();
-#endif
-        gdb_exit(cpu_env, arg1);
+//             cpu_list_lock();
+//             lastp = &first_cpu;
+//             p = first_cpu;
+//             while (p && p != cpu) {
+//                 lastp = &p->next_cpu;
+//                 p = p->next_cpu;
+//             }
+//             /* If we didn't find the CPU for this thread then something is
+//                horribly wrong.  */
+//             if (!p) {
+//                 abort();
+//             }
+//             /* Remove the CPU from the list.  */
+//             *lastp = p->next_cpu;
+//             cpu_list_unlock();
+//             ts = ((CPUArchState *)cpu_env)->opaque;
+//             if (ts->child_tidptr) {
+//                 put_user_u32(0, ts->child_tidptr);
+//                 sys_futex(g2h(ts->child_tidptr), FUTEX_WAKE, INT_MAX,
+//                           NULL, NULL, 0);
+//             }
+//             thread_cpu = NULL;
+//             object_unref(OBJECT(ENV_GET_CPU(cpu_env)));
+//             g_free(ts);
+//             pthread_exit(NULL);
+//         }
+// #ifdef TARGET_GPROF
+//         _mcleanup();
+// #endif
+//         gdb_exit(cpu_env, arg1);
         _exit(arg1);
         ret = 0; /* avoid warning */
         break;

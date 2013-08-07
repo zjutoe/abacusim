@@ -150,4 +150,74 @@ StructEntry struct_entries[MAX_STRUCTS];
 #define offsetof(TYPE, MEMBER) ((size_t) &((TYPE *)0)->MEMBER)
 #endif
 
+#define PRIx64 "llx"
+
+
+/* Functions for accessing guest memory.  The tget and tput functions
+   read/write single values, byteswapping as necessary.  The lock_user
+   gets a pointer to a contiguous area of guest memory, but does not perform
+   and byteswapping.  lock_user may return either a pointer to the guest
+   memory, or a temporary buffer.  */
+
+/* Lock an area of guest memory into the host.  If copy is true then the
+   host area will have the same contents as the guest.  */
+static inline void *lock_user(int type, abi_ulong guest_addr, long len, int copy)
+{
+	if (!access_ok(type, guest_addr, len))
+		return NULL;
+#ifdef DEBUG_REMAP
+	{
+		void *addr;
+		addr = malloc(len);
+		if (copy)
+			memcpy(addr, g2h(guest_addr), len);
+		else
+			memset(addr, 0, len);
+		return addr;
+	}
+#else
+	return g2h(guest_addr);
+#endif
+}
+
+/* Unlock an area of guest memory.  The first LEN bytes must be
+   flushed back to guest memory. host_ptr = NULL is explicitly
+   allowed and does nothing. */
+static inline void unlock_user(void *host_ptr, abi_ulong guest_addr,
+                               long len)
+{
+
+#ifdef DEBUG_REMAP
+	if (!host_ptr)
+		return;
+	if (host_ptr == g2h(guest_addr))
+		return;
+	if (len > 0)
+		memcpy(g2h(guest_addr), host_ptr, len);
+	free(host_ptr);
+#endif
+}
+
+/* Return the length of a string in target memory or -TARGET_EFAULT if
+   access error. */
+abi_long target_strlen(abi_ulong gaddr);
+
+/* Like lock_user but for null terminated strings.  */
+static inline void *lock_user_string(abi_ulong guest_addr)
+{
+	abi_long len;
+	len = target_strlen(guest_addr);
+	if (len < 0)
+		return NULL;
+	return lock_user(VERIFY_READ, guest_addr, (long)(len + 1), 1);
+}
+
+/* Helper macros for locking/ulocking a target struct.  */
+#define lock_user_struct(type, host_ptr, guest_addr, copy)\
+	(host_ptr = lock_user(type, guest_addr, sizeof(*host_ptr), copy))
+#define unlock_user_struct(host_ptr, guest_addr, copy)\
+	unlock_user(host_ptr, guest_addr, (copy) ? sizeof(*host_ptr) : 0)
+
+
+
 #endif //SYSCALL_HACK_H
