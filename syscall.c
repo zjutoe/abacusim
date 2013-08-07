@@ -65,7 +65,7 @@ int __clone2(int (*fn)(void *), void *child_stack_base,
 #include <netinet/tcp.h>
 #include <linux/wireless.h>
 #include <linux/icmp.h>
-#include "qemu-common.h"
+///#include "qemu-common.h"
 #ifdef TARGET_GPROF
 #include <sys/gmon.h>
 #endif
@@ -107,9 +107,10 @@ int __clone2(int (*fn)(void *), void *child_stack_base,
 #include <linux/reboot.h>
 #include <linux/route.h>
 #include "linux_loop.h"
-#include "cpu-uname.h"
+///#include "cpu-uname.h"
 
-#include "qemu.h"
+///#include "qemu.h"
+#include "syscall_hack.h"
 
 #define CLONE_NPTL_FLAGS2 (CLONE_SETTLS | \
     CLONE_PARENT_SETTID | CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID)
@@ -1013,6 +1014,10 @@ static abi_long do_pipe2(int host_pipe[], int flags)
 static abi_long do_pipe(void *cpu_env, abi_ulong pipedes,
                         int flags, int is_pipe2)
 {
+#ifndef SUPPORT_SYS_PIPE
+	return 0;
+#else  //SUPPORT_SYS_PIPE
+
     int host_pipe[2];
     abi_long ret;
     ret = flags ? do_pipe2(host_pipe, flags) : pipe(host_pipe);
@@ -1042,6 +1047,8 @@ static abi_long do_pipe(void *cpu_env, abi_ulong pipedes,
         || put_user_s32(host_pipe[1], pipedes + sizeof(host_pipe[0])))
         return -TARGET_EFAULT;
     return get_errno(ret);
+
+#endif	//SUPPORT_SYS_PIPE
 }
 
 static inline abi_long target_to_host_ip_mreq(struct ip_mreqn *mreqn,
@@ -1431,6 +1438,11 @@ set_timeout:
 static abi_long do_getsockopt(int sockfd, int level, int optname,
                               abi_ulong optval_addr, abi_ulong optlen)
 {
+
+#ifndef SUPPORT_SYS_GETSOCKOPT
+	return 0;
+#else
+
     abi_long ret;
     int len, val;
     socklen_t lv;
@@ -1607,6 +1619,8 @@ static abi_long do_getsockopt(int sockfd, int level, int optname,
         break;
     }
     return ret;
+
+#endif  //SUPPORT_SYS_GETSOCKOPT
 }
 
 static struct iovec *lock_iovec(int type, abi_ulong target_addr,
@@ -2558,7 +2572,7 @@ static inline abi_long do_semctl(int semid, int semnum, int cmd,
             if (err)
                 return err;
             break;
-	case IPC_INFO:
+	    ///case IPC_INFO:
 	case SEM_INFO:
             arg.__buf = &seminfo;
             ret = get_errno(semctl(semid, semnum, cmd, arg));
@@ -2732,7 +2746,7 @@ static inline abi_long do_msgctl(int msgid, int cmd, abi_long ptr)
     case IPC_RMID:
         ret = get_errno(msgctl(msgid, cmd, NULL));
         break;
-    case IPC_INFO:
+	///case IPC_INFO:
     case MSG_INFO:
         ret = get_errno(msgctl(msgid, cmd, (struct msqid_ds *)&msginfo));
         if (host_to_target_msginfo(ptr, &msginfo))
@@ -2751,6 +2765,10 @@ struct target_msgbuf {
 static inline abi_long do_msgsnd(int msqid, abi_long msgp,
                                  unsigned int msgsz, int msgflg)
 {
+#ifndef SUPPORT_SYS_MSGSND
+	return 0;
+#else
+
     struct target_msgbuf *target_mb;
     struct msgbuf *host_mb;
     abi_long ret = 0;
@@ -2765,12 +2783,18 @@ static inline abi_long do_msgsnd(int msqid, abi_long msgp,
     unlock_user_struct(target_mb, msgp, 0);
 
     return ret;
+
+#endif // SUPPORT_SYS_MSGSND
 }
 
 static inline abi_long do_msgrcv(int msqid, abi_long msgp,
                                  unsigned int msgsz, abi_long msgtyp,
                                  int msgflg)
 {
+#ifndef SUPPORT_SYS_MSGSND
+	return 0;
+#else
+
     struct target_msgbuf *target_mb;
     char *target_mtext;
     struct msgbuf *host_mb;
@@ -2800,6 +2824,8 @@ end:
         unlock_user_struct(target_mb, msgp, 1);
     g_free(host_mb);
     return ret;
+#endif	//SUPPORT_SYS_MSGSND
+
 }
 
 struct target_shmid_ds
@@ -2932,7 +2958,7 @@ static inline abi_long do_shmctl(int shmid, int cmd, abi_long buf)
         if (host_to_target_shmid_ds(buf, &dsarg))
             return -TARGET_EFAULT;
         break;
-    case IPC_INFO:
+	///case IPC_INFO:
         ret = get_errno(shmctl(shmid, cmd, (struct shmid_ds *)&shminfo));
         if (host_to_target_shminfo(buf, &shminfo))
             return -TARGET_EFAULT;
@@ -4224,6 +4250,8 @@ abi_long do_arch_prctl(CPUX86State *env, int code, abi_ulong addr)
 #define NEW_STACK_SIZE 0x40000
 
 
+#ifdef SUPPORT_SYS_PTHREAD
+
 static pthread_mutex_t clone_lock = PTHREAD_MUTEX_INITIALIZER;
 typedef struct {
     CPUArchState *env;
@@ -4379,6 +4407,8 @@ static int do_fork(CPUArchState *env, unsigned int flags, abi_ulong newsp,
     return ret;
 }
 
+#endif	//SUPPORT_SYS_PTHREAD
+
 /* warning : doesn't handle linux specific flags... */
 static int target_to_host_fcntl_cmd(int cmd)
 {
@@ -4399,10 +4429,10 @@ static int target_to_host_fcntl_cmd(int cmd)
 	    return F_GETOWN;
 	case TARGET_F_SETOWN:
 	    return F_SETOWN;
-	case TARGET_F_GETSIG:
-	    return F_GETSIG;
-	case TARGET_F_SETSIG:
-	    return F_SETSIG;
+	// case TARGET_F_GETSIG:
+	//     return F_GETSIG;
+	// case TARGET_F_SETSIG:
+	//     return F_SETSIG;
 #if TARGET_ABI_BITS == 32
         case TARGET_F_GETLK64:
 	    return F_GETLK64;
@@ -4411,16 +4441,16 @@ static int target_to_host_fcntl_cmd(int cmd)
 	case TARGET_F_SETLKW64:
 	    return F_SETLKW64;
 #endif
-        case TARGET_F_SETLEASE:
-            return F_SETLEASE;
-        case TARGET_F_GETLEASE:
-            return F_GETLEASE;
+        // case TARGET_F_SETLEASE:
+        //     return F_SETLEASE;
+        // case TARGET_F_GETLEASE:
+        //     return F_GETLEASE;
 #ifdef F_DUPFD_CLOEXEC
         case TARGET_F_DUPFD_CLOEXEC:
             return F_DUPFD_CLOEXEC;
 #endif
-        case TARGET_F_NOTIFY:
-            return F_NOTIFY;
+        // case TARGET_F_NOTIFY:
+        //     return F_NOTIFY;
 	default:
             return -TARGET_EINVAL;
     }
@@ -4439,6 +4469,10 @@ static const bitmask_transtbl flock_tbl[] = {
 
 static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
 {
+
+#ifndef SUPPORT_SYS_FCNTL
+	return 0;
+#else
     struct flock fl;
     struct target_flock *target_fl;
     struct flock64 fl64;
@@ -4550,6 +4584,8 @@ static abi_long do_fcntl(int fd, int cmd, abi_ulong arg)
         break;
     }
     return ret;
+
+#endif	//SUPPORT_SYS_FCNTL
 }
 
 #ifdef USE_UID16
@@ -4865,33 +4901,35 @@ int host_to_target_waitstatus(int status)
 
 int get_osversion(void)
 {
-    static int osversion;
-    struct new_utsname buf;
-    const char *s;
-    int i, n, tmp;
-    if (osversion)
-        return osversion;
-    if (qemu_uname_release && *qemu_uname_release) {
-        s = qemu_uname_release;
-    } else {
-        if (sys_uname(&buf))
-            return 0;
-        s = buf.release;
-    }
-    tmp = 0;
-    for (i = 0; i < 3; i++) {
-        n = 0;
-        while (*s >= '0' && *s <= '9') {
-            n *= 10;
-            n += *s - '0';
-            s++;
-        }
-        tmp = (tmp << 8) + n;
-        if (*s == '.')
-            s++;
-    }
-    osversion = tmp;
-    return osversion;
+	return 0;
+
+    // static int osversion;
+    // struct new_utsname buf;
+    // const char *s;
+    // int i, n, tmp;
+    // if (osversion)
+    //     return osversion;
+    // if (qemu_uname_release && *qemu_uname_release) {
+    //     s = qemu_uname_release;
+    // } else {
+    //     if (sys_uname(&buf))
+    //         return 0;
+    //     s = buf.release;
+    // }
+    // tmp = 0;
+    // for (i = 0; i < 3; i++) {
+    //     n = 0;
+    //     while (*s >= '0' && *s <= '9') {
+    //         n *= 10;
+    //         n += *s - '0';
+    //         s++;
+    //     }
+    //     tmp = (tmp << 8) + n;
+    //     if (*s == '.')
+    //         s++;
+    // }
+    // osversion = tmp;
+    // return osversion;
 }
 
 
