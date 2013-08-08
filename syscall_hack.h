@@ -7,6 +7,7 @@
 #define CONFIG_USER_ONLY
 //#define TARGET_LONG_BITS (sizeof(long)*8)
 #define TARGET_LONG_BITS 32
+#define CONFIG_UNAME_RELEASE "abacusim"
 
 #ifndef TARGET_LONG_BITS
 #error TARGET_LONG_BITS must be defined before including this header
@@ -61,6 +62,7 @@ typedef uint64_t target_ulong;
 // BEGIN: qemu.h
 #define VERIFY_READ 0
 #define VERIFY_WRITE 1 /* implies read access */
+#define MAX_ARG_PAGES 33
 // END: qemu.h
 
 // BEGIN: qemu/osdep.h

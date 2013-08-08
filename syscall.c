@@ -283,6 +283,11 @@ static bitmask_transtbl fcntl_flags_tbl[] = {
       (dest)[__NEW_UTS_LEN] = '\0'; \
   } while (0)
 
+
+char *exec_path;
+const char *qemu_uname_release = CONFIG_UNAME_RELEASE;
+
+
 static int sys_uname(struct new_utsname *buf)
 {
   struct utsname uts_buf;
@@ -6493,15 +6498,15 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         break;
     case TARGET_NR_mprotect:
         {
-            TaskState *ts = ((CPUArchState *)cpu_env)->opaque;
-            /* Special hack to detect libc making the stack executable.  */
-            if ((arg3 & PROT_GROWSDOWN)
-                && arg1 >= ts->info->stack_limit
-                && arg1 <= ts->info->start_stack) {
-                arg3 &= ~PROT_GROWSDOWN;
-                arg2 = arg2 + arg1 - ts->info->stack_limit;
-                arg1 = ts->info->stack_limit;
-            }
+            // TaskState *ts = ((CPUArchState *)cpu_env)->opaque;
+            // /* Special hack to detect libc making the stack executable.  */
+            // if ((arg3 & PROT_GROWSDOWN)
+            //     && arg1 >= ts->info->stack_limit
+            //     && arg1 <= ts->info->start_stack) {
+            //     arg3 &= ~PROT_GROWSDOWN;
+            //     arg2 = arg2 + arg1 - ts->info->stack_limit;
+            //     arg1 = ts->info->stack_limit;
+            // }
         }
         ret = get_errno(target_mprotect(arg1, arg2, arg3));
         break;
