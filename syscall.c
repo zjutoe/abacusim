@@ -286,7 +286,7 @@ static bitmask_transtbl fcntl_flags_tbl[] = {
 
 char *exec_path;
 const char *qemu_uname_release = CONFIG_UNAME_RELEASE;
-
+int do_strace=0;
 
 static int sys_uname(struct new_utsname *buf)
 {

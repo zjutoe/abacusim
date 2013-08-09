@@ -214,12 +214,40 @@ static inline void *lock_user_string(abi_ulong guest_addr)
 	return lock_user(VERIFY_READ, guest_addr, (long)(len + 1), 1);
 }
 
+#define __ARCH_FLOCK_PAD	short __unused;
+#define __ARCH_FLOCK64_PAD	short __unused;
+
+struct flock64 {
+	short  l_type;
+	short  l_whence;
+	__kernel_loff_t l_start;
+	__kernel_loff_t l_len;
+	__kernel_pid_t  l_pid;
+	__ARCH_FLOCK64_PAD
+};
+
+typedef long long		__kernel_off64_t;
+typedef __kernel_off64_t	off64_t;
+
 /* Helper macros for locking/ulocking a target struct.  */
 #define lock_user_struct(type, host_ptr, guest_addr, copy)\
 	(host_ptr = lock_user(type, guest_addr, sizeof(*host_ptr), copy))
 #define unlock_user_struct(host_ptr, guest_addr, copy)\
 	unlock_user(host_ptr, guest_addr, (copy) ? sizeof(*host_ptr) : 0)
 
+
+#define CPUArchState CPUMIPSState
+
+typedef struct CPUMIPSState {
+	abi_ulong gpr[32];
+	target_ulong tls_value; /* For usermode emulation */
+	
+} CPUMIPSState;
+
+static inline abi_ulong get_sp_from_cpustate(CPUMIPSState *state)
+{
+    return state->gpr[29];
+}
 
 
 #endif //SYSCALL_HACK_H
