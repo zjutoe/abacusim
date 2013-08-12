@@ -18,15 +18,20 @@ end
 
 ffi.cdef[[
 
-    uint32_t do_getegid();
+      uint32_t do_getegid();
+
+      typedef struct CPUMIPSState {
+	 abi_ulong gpr[32];
+	 target_ulong tls_value;
+      } CPUMIPSState;
 
 ]]
 
 local sys = ffi.load('syscall')
 
-function _m.sys_getegid()
-   return sys.do_getegid()
-end
+-- function _m.sys_getegid()
+--    return sys.do_getegid()
+-- end
 
 function _m.do_syscall(R)
    local code = R:get(R.v0)
