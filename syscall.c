@@ -9426,58 +9426,32 @@ static const uint8_t mips_syscall_args[] = {
 # endif /* O32 */
 
 
-abi_long do_syscall_lua(void* env, arg5, arg6, arg7, arg8)
+abi_long do_syscall_lua(void* env, abi_ulong arg5, abi_ulong arg6, abi_ulong arg7, abi_ulong arg8)
 {
 	CPUMIPSState* state = (CPUMIPSState*)env;
-	abi_ulong * gpr = state.gpr;
+	abi_ulong * gpr = state->gpr;
 	unsigned int syscall_num;
-
+	abi_long ret;
+	
 # ifdef TARGET_ABI_MIPSO32
 	syscall_num = gpr[2] - 4000;
-            if (syscall_num >= sizeof(mips_syscall_args)) {
+	if (syscall_num >= sizeof(mips_syscall_args)) {
                 ret = -TARGET_ENOSYS;
-            } else {
-                int nb_args;
-                abi_ulong sp_reg;
-                abi_ulong arg5 = 0, arg6 = 0, arg7 = 0, arg8 = 0;
-
-                nb_args = mips_syscall_args[syscall_num];
-                sp_reg = gpr[29];
-                switch (nb_args) {
-                /* these arguments are taken from the stack */
-                case 8:
-                    if ((ret = get_user_ual(arg8, sp_reg + 28)) != 0) {
-                        goto done_syscall;
-                    }
-                case 7:
-                    if ((ret = get_user_ual(arg7, sp_reg + 24)) != 0) {
-                        goto done_syscall;
-                    }
-                case 6:
-                    if ((ret = get_user_ual(arg6, sp_reg + 20)) != 0) {
-                        goto done_syscall;
-                    }
-                case 5:
-                    if ((ret = get_user_ual(arg5, sp_reg + 16)) != 0) {
-                        goto done_syscall;
-                    }
-                default:
-                    break;
-                }
-                ret = do_syscall(env, env->active_tc.gpr[2],
-                                 env->active_tc.gpr[4],
-                                 env->active_tc.gpr[5],
-                                 env->active_tc.gpr[6],
-                                 env->active_tc.gpr[7],
-                                 arg5, arg6, arg7, arg8);
+	} else {
+		ret = do_syscall(env, 
+				 gpr[2], gpr[4],
+				 gpr[5], gpr[6],
+				 gpr[7],
+				 arg5, arg6, arg7, arg8);
             }
-done_syscall:
 # else
-            ret = do_syscall(env, env->active_tc.gpr[2],
-                             env->active_tc.gpr[4], env->active_tc.gpr[5],
-                             env->active_tc.gpr[6], env->active_tc.gpr[7],
-                             env->active_tc.gpr[8], env->active_tc.gpr[9],
-                             env->active_tc.gpr[10], env->active_tc.gpr[11]);
+	ret = do_syscall(env, 
+			 gpr[2], gpr[4], 
+			 gpr[5], gpr[6], 
+			 gpr[7], gpr[8], 
+			 gpr[9], gpr[10], 
+			 gpr[11]);
 # endif /* O32 */
 
+	return ret;
 }
