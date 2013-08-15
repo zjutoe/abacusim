@@ -161,6 +161,51 @@ StructEntry struct_entries[MAX_STRUCTS];
    and byteswapping.  lock_user may return either a pointer to the guest
    memory, or a temporary buffer.  */
 
+static inline int access_ok(int type, abi_ulong addr, abi_ulong size)
+{
+	return 1;		//FIXME hack
+}
+
+/* On some host systems the guest address space is reserved on the host.
+ * This allows the guest address space to be offset to a convenient location.
+ */
+#if defined(CONFIG_USE_GUEST_BASE)
+extern unsigned long guest_base;
+extern int have_guest_base;
+extern unsigned long reserved_va;
+#define GUEST_BASE guest_base
+#define RESERVED_VA reserved_va
+#else
+#define GUEST_BASE 0ul
+#define RESERVED_VA 0ul
+#endif
+
+/* All direct uses of g2h and h2g need to go away for usermode softmmu.  */
+#define g2h(x) ((void *)((unsigned long)(target_ulong)(x) + GUEST_BASE))
+
+#if HOST_LONG_BITS <= TARGET_VIRT_ADDR_SPACE_BITS
+#define h2g_valid(x) 1
+#else
+#define h2g_valid(x) ({ \
+	unsigned long __guest = (unsigned long)(x) - GUEST_BASE; \
+	(__guest < (1ul << TARGET_VIRT_ADDR_SPACE_BITS)) && \
+	(!RESERVED_VA || (__guest < RESERVED_VA)); \
+		})
+#endif
+
+#define h2g_nocheck(x) ({ \
+	unsigned long __ret = (unsigned long)(x) - GUEST_BASE; \
+	(abi_ulong)__ret; \
+		   })
+
+#define h2g(x) ({ \
+	/* Check if given address fits target address space */ \
+	assert(h2g_valid(x)); \
+	h2g_nocheck(x); \
+	})
+
+
+
 /* Lock an area of guest memory into the host.  If copy is true then the
    host area will have the same contents as the guest.  */
 static inline void *lock_user(int type, abi_ulong guest_addr, long len, int copy)

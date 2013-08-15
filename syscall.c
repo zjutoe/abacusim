@@ -5160,12 +5160,16 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
     struct statfs stfs;
     void *p;
 
+    printf("[toe] num=%d %s:%d\n", num, __FUNCTION__, __LINE__);
+
+
 #ifdef DEBUG
     gemu_log("syscall %d", num);
 #endif
     ///if(do_strace)
     ///print_syscall(num, arg1, arg2, arg3, arg4, arg5, arg6);
 
+    printf("[toe] num=%d %s:%d\n", num, __FUNCTION__, __LINE__);
     switch(num) {
     case TARGET_NR_exit:
 //         /* In old applications this may be used to implement _exit(2).
@@ -6845,6 +6849,7 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         break;
 #ifdef TARGET_NR_idle
     case TARGET_NR_idle:
+	    printf("[toe] %s:%d\n", __FUNCTION__, __LINE__);
         goto unimplemented;
 #endif
 #ifdef TARGET_NR_syscall
@@ -7010,10 +7015,10 @@ abi_long do_syscall(void *cpu_env, int num, abi_long arg1,
         /* no need to transcode because we use the linux syscall */
         {
             struct new_utsname * buf;
-
             if (!lock_user_struct(VERIFY_WRITE, buf, arg1, 0))
                 goto efault;
             ret = get_errno(sys_uname(buf));
+
             if (!is_error(ret)) {
                 /* Overrite the native machine name with whatever is being
                    emulated. */
@@ -9435,6 +9440,7 @@ abi_long do_syscall_lua(void* env, abi_ulong arg5, abi_ulong arg6, abi_ulong arg
 	
 # ifdef TARGET_ABI_MIPSO32
 	syscall_num = gpr[2] - 4000;
+	printf("toe: syscall %d\n", syscall_num);
 	if (syscall_num >= sizeof(mips_syscall_args)) {
                 ret = -TARGET_ENOSYS;
 	} else {

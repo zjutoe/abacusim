@@ -309,12 +309,13 @@ end
 require "syscall"
 local syscall = syscall.init()
 
-local function do_syscall(inst, R) 
-   local res = syscall.do_syscall(R)
+local function do_syscall(inst, R, mem) 
+   local res = syscall.do_syscall(R, mem)
    if res == -1 then 
       exception("syscall")
    end
    LOGD(string.format("syscall id:0x%x", R:get(R.v0)))
+   R:info()
 end
 
 
@@ -810,7 +811,7 @@ local function exec_inst(R, inst, icache, dcache)
       local func = B.sub_tonum(inst, 5, 0)
       -- LOGD("func = ", func)
       local h = inst_handle_rtype[func]
-      branch_taken = h(inst, R)
+      branch_taken = h(inst, R, dcache)
    elseif op == 1 then
       -- BZ
       local fmt = B.sub_tonum(inst, 20, 16)
@@ -837,7 +838,7 @@ local function loop(R, icache, dcache)
 
       if not inst then break end
 
-      R:info()
+      -- R:info()
 
       local new_pc = pc + 4
       R:set(R.PC, new_pc)
@@ -921,35 +922,35 @@ if init_inst then
 
    -- FIXME I don't know why the following values, just copy from Qemu execution trace
    R:set(R.sp, 0x408002a8)
-   mem:wr(0x408002a8, 1)
-   mem:wr(0x408002b4, 0x408003ab)
-   mem:wr(0x408002b8, 0x408003c5)
-   mem:wr(0x408002bc, 0x408003e7)
-   mem:wr(0x408002c0, 0x40800407)
-   mem:wr(0x408002c4, 0x4080043b)
-   mem:wr(0x408002c8, 0x40800444)
-   mem:wr(0x408002cc, 0x40800450)
-   mem:wr(0x408002d0, 0x40800462)
-   mem:wr(0x408002d4, 0x4080046a)
-   mem:wr(0x408002d8, 0x40800479)
-   mem:wr(0x408002dc, 0x4080048a)
-   mem:wr(0x408002e0, 0x408004aa)
-   mem:wr(0x408002e4, 0x408004c3)
-   mem:wr(0x408002e8, 0x408004d6)
-   mem:wr(0x408002ec, 0x40800531)
-   mem:wr(0x408002f0, 0x40800a27)
-   mem:wr(0x408002f4, 0x40800f48)
-   mem:wr(0x408002f8, 0x40800f51)
-   mem:wr(0x408002fc, 0x40800f64)
-   mem:wr(0x40800300, 0x40800f86)
-   mem:wr(0x40800304, 0x40800fd6)
-   mem:wr(0x40800308, 0x40800fe2)
-   mem:wr(0x4080030c, 0x0)
+   -- mem:wr(0x408002a8, 1)
+   -- mem:wr(0x408002b4, 0x408003ab)
+   -- mem:wr(0x408002b8, 0x408003c5)
+   -- mem:wr(0x408002bc, 0x408003e7)
+   -- mem:wr(0x408002c0, 0x40800407)
+   -- mem:wr(0x408002c4, 0x4080043b)
+   -- mem:wr(0x408002c8, 0x40800444)
+   -- mem:wr(0x408002cc, 0x40800450)
+   -- mem:wr(0x408002d0, 0x40800462)
+   -- mem:wr(0x408002d4, 0x4080046a)
+   -- mem:wr(0x408002d8, 0x40800479)
+   -- mem:wr(0x408002dc, 0x4080048a)
+   -- mem:wr(0x408002e0, 0x408004aa)
+   -- mem:wr(0x408002e4, 0x408004c3)
+   -- mem:wr(0x408002e8, 0x408004d6)
+   -- mem:wr(0x408002ec, 0x40800531)
+   -- mem:wr(0x408002f0, 0x40800a27)
+   -- mem:wr(0x408002f4, 0x40800f48)
+   -- mem:wr(0x408002f8, 0x40800f51)
+   -- mem:wr(0x408002fc, 0x40800f64)
+   -- mem:wr(0x40800300, 0x40800f86)
+   -- mem:wr(0x40800304, 0x40800fd6)
+   -- mem:wr(0x40800308, 0x40800fe2)
+   -- mem:wr(0x4080030c, 0x0)
 
-   -- FIXME 
-   mem:wr(0x40800310, 0x00000019)
-   mem:wr(0x40800314, 0x40800391)
-   mem:wr(0x40800318, 0x00000011)
+   -- -- FIXME 
+   -- mem:wr(0x40800310, 0x00000019)
+   -- mem:wr(0x40800314, 0x40800391)
+   -- mem:wr(0x40800318, 0x00000011)
    
 end
 

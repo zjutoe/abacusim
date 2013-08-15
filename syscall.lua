@@ -23,7 +23,7 @@ ffi.cdef[[
       typedef uint32_t abi_ulong __attribute__((aligned(4)));
       
       typedef struct CPUMIPSState {
-	 abi_ulong gpr[32];
+	 abi_ulong gpr[36];
 	 uint32_t tls_value;
       } CPUMIPSState;
 
@@ -42,7 +42,7 @@ function _m.do_syscall(R, mem)
    local arg6 = mem:rd(sp + 20)
    local arg7 = mem:rd(sp + 24)
    local arg8 = mem:rd(sp + 28)
-   local env = ffi.new("struct CPUMIPSState", R)
+   local env = ffi.new("CPUMIPSState", {gpr=R})
 
    local ret = sys.do_syscall_lua(env, arg5, arg6, arg7, arg8)
    

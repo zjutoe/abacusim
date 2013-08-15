@@ -95,7 +95,7 @@ function init()
       R[k] = v
    end
 
-   for i=0, _R.MAX do
+   for i=0, _R.MAX-1 do
       R[i] = 0
    end
 
